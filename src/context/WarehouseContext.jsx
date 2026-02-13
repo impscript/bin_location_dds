@@ -1,46 +1,99 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { generateWarehouseData } from '../utils/dataGenerator';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
 
 const WarehouseContext = createContext();
 
 export const useWarehouse = () => useContext(WarehouseContext);
 
 export const WarehouseProvider = ({ children }) => {
-    const [warehouseData, setWarehouseData] = useState([]);
+    const [warehouseData, setWarehouseData] = useState([]); // Legacy format: array of bin objects
+    const [zones, setZones] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Save to LocalStorage helper
-    const saveToStorage = (data) => {
+    // Fetch all data from Supabase and transform to legacy format
+    const fetchData = useCallback(async () => {
         try {
-            localStorage.setItem('warehouse_data', JSON.stringify(data));
+            setLoading(true);
+            setError(null);
+
+            // Fetch zones
+            const { data: zonesData, error: zonesErr } = await supabase
+                .from('zones')
+                .select('*')
+                .order('sort_order');
+            if (zonesErr) throw zonesErr;
+            setZones(zonesData || []);
+
+            // Fetch bins with zone info
+            const { data: binsData, error: binsErr } = await supabase
+                .from('bins')
+                .select('*, zones(name, type)')
+                .order('bin_code');
+            if (binsErr) throw binsErr;
+
+            // Fetch inventory with product info (paginated to bypass 1000-row limit)
+            let inventoryData = [];
+            let from = 0;
+            const pageSize = 1000;
+            while (true) {
+                const { data: page, error: invErr } = await supabase
+                    .from('inventory')
+                    .select('*, products(product_code, product_name, unit, ns_code, ns_name, ns_sub_group)')
+                    .range(from, from + pageSize - 1)
+                    .order('bin_id');
+                if (invErr) throw invErr;
+                inventoryData = inventoryData.concat(page || []);
+                if (!page || page.length < pageSize) break;
+                from += pageSize;
+            }
+
+            // Group inventory by bin_id
+            const inventoryByBin = {};
+            (inventoryData || []).forEach(inv => {
+                if (!inventoryByBin[inv.bin_id]) {
+                    inventoryByBin[inv.bin_id] = [];
+                }
+                inventoryByBin[inv.bin_id].push(inv);
+            });
+
+            // Transform to legacy warehouse format (for backward compatibility)
+            const legacyData = (binsData || []).map(bin => ({
+                id: bin.bin_code,
+                zone: bin.zones?.name || 'Unknown',
+                shelf: bin.shelf,
+                level: bin.level,
+                isSim: false,
+                isOccupied: (inventoryByBin[bin.id] || []).length > 0,
+                _binUuid: bin.id, // Keep UUID reference for DB operations
+                items: (inventoryByBin[bin.id] || []).map(inv => ({
+                    code: inv.products?.product_code || 'N/A',
+                    name: inv.products?.product_name || 'Unknown',
+                    unit: inv.products?.unit || 'EA',
+                    nsCode: inv.products?.ns_code || '',
+                    nsName: inv.products?.ns_name || '',
+                    nsSubGroup: inv.products?.ns_sub_group || '',
+                    bin: bin.bin_code,
+                    qty: inv.qty,
+                    isDummy: false,
+                    _inventoryId: inv.id,
+                    _productId: inv.product_id,
+                }))
+            }));
+
+            setWarehouseData(legacyData);
+            console.log(`Loaded from Supabase: ${zonesData.length} zones, ${binsData.length} bins, ${inventoryData.length} items`);
         } catch (err) {
-            console.error("Failed to save to localStorage", err);
+            console.error('Error fetching warehouse data:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
-        // Load from LocalStorage or Initialize Empty
-        const stored = localStorage.getItem('warehouse_data');
-        if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                setWarehouseData(parsed);
-                console.log("Loaded data from localStorage:", parsed.length, "bins");
-            } catch (e) {
-                console.error("Error parsing localStorage, resetting...", e);
-                const emptyData = generateWarehouseData(false); // False = Empty
-                setWarehouseData(emptyData);
-                saveToStorage(emptyData);
-            }
-        } else {
-            // First time load: Start Clean (No Mock Data)
-            const emptyData = generateWarehouseData(false);
-            setWarehouseData(emptyData);
-            saveToStorage(emptyData);
-            console.log("Initialized empty warehouse data.");
-        }
-        setLoading(false);
-    }, []);
+        fetchData();
+    }, [fetchData]);
 
     const getZoneData = (zoneId) => {
         return warehouseData.filter(b => b.zone === zoneId);
@@ -70,130 +123,30 @@ export const WarehouseProvider = ({ children }) => {
         return results;
     };
 
-    // Helper to parse Bin ID into components
-    const parseBinId = (binId) => {
-        // Default structure
-        let zone = 'General';
-        let shelf = 'General';
-        let level = 1;
-
-        const cleanId = binId.trim();
-
-        // Pattern 1: OB_Non [Zone][Shelf]-[Level] (e.g., OB_Non A1-1)
-        const standardMatch = cleanId.match(/^OB_Non\s+([A-Z]+)(\d+)-(\d+)$/i);
-        if (standardMatch) {
-            const [_, zoneCode, shelfNum, levelNum] = standardMatch;
-            return {
-                id: cleanId,
-                zone: zoneCode.toUpperCase(), // e.g. "A"
-                shelf: `${zoneCode}${shelfNum}`, // e.g. "A1"
-                level: parseInt(levelNum),
-                items: [],
-                isSim: false,
-                isOccupied: false
-            };
-        }
-
-        // Pattern 2: OB_Premium [Level]
-        const premiumMatch = cleanId.match(/^OB_Premium\s+(\d+)$/i);
-        if (premiumMatch) {
-            return {
-                id: cleanId,
-                zone: 'Premium',
-                shelf: 'Premium',
-                level: parseInt(premiumMatch[1]),
-                items: [],
-                isSim: false,
-                isOccupied: false
-            };
-        }
-
-        // Pattern 3: Special Zones based on known keywords or simple heuristic
-        // Check known special zones first if we had imports, but for dynamic we might just guess.
-        // If it looks like "E-Com", "Cutsize", etc.
-        // Let's use the whole ID as Zone if it doesn't match standard patterns, or try to split.
-
-        // Simple fallback: If it contains "OB_", remove it for Zone name.
-        if (cleanId.startsWith("OB_")) {
-            const remainder = cleanId.replace("OB_", "").trim();
-            // e.g. OB_Cutsize -> Zone: Cutsize
-            return {
-                id: cleanId,
-                zone: remainder,
-                shelf: 'Bulk Storage',
-                level: 1,
-                items: [],
-                isSim: false,
-                isOccupied: false
-            };
-        }
-
-        // Final fallback: Use the ID itself as the Zone
-        return {
-            id: cleanId,
-            zone: cleanId,
-            shelf: 'Bulk Storage',
-            level: 1,
-            items: [],
-            isSim: false,
-            isOccupied: false
-        };
-    };
-
-    const importData = (newItems) => {
-        // 1. Clear existing data and prepare for full replacement
-        // Note: We are NOT merging. User request: "BIN เดิมที่มีให้เคลียร์... ไม่ต้อง fix แบบเดิม"
-
-        const newWarehouseData = [];
-        const binMap = new Map(); // id -> binObject
-
-        newItems.forEach(newItem => {
-            const binId = newItem.binId.trim();
-
-            // 2. Get or Create Bin
-            if (!binMap.has(binId)) {
-                const newBin = parseBinId(binId);
-                binMap.set(binId, newBin);
-                newWarehouseData.push(newBin);
-            }
-
-            const bin = binMap.get(binId);
-
-            // 3. Add Item
-            // Mapping based on template_final.csv headers:
-            // Bin ID, Product Code, Product Name, Unit, NS Code, NS Name, NS SubGroup, Quantity
-            const item = {
-                code: newItem.productCode || "N/A",
-                name: newItem.productName || "Unknown Product",
-                unit: newItem.unit || "EA",
-                nsCode: newItem.nsCode || "",
-                nsName: newItem.nsName || "",
-                nsSubGroup: newItem.nsSubGroup || "",
-                bin: binId,
-                qty: parseInt(newItem.quantity) || 0,
-                isDummy: false
-            };
-
-            bin.items.push(item);
-            bin.isOccupied = true;
-        });
-
-        // 4. Update State and Storage
-        setWarehouseData(newWarehouseData);
-        saveToStorage(newWarehouseData);
-
-        // return for optional immediate usage
-        return newWarehouseData;
+    // Import data via CSV (legacy support — will be replaced by Supabase import later)
+    const importData = async (newItems) => {
+        // For now, keep legacy behavior; Supabase import will be implemented in Phase 3
+        console.log('Import called with', newItems.length, 'items — Supabase import coming soon');
+        await fetchData(); // Refresh from DB
     };
 
     const clearAllData = () => {
-        const emptyData = generateWarehouseData(false);
-        setWarehouseData(emptyData);
-        saveToStorage(emptyData);
+        console.log('Clear all data — not supported in Supabase mode');
     };
 
     return (
-        <WarehouseContext.Provider value={{ warehouseData, loading, getZoneData, getBinData, searchItems, importData, clearAllData }}>
+        <WarehouseContext.Provider value={{
+            warehouseData,
+            zones,
+            loading,
+            error,
+            getZoneData,
+            getBinData,
+            searchItems,
+            importData,
+            clearAllData,
+            refreshData: fetchData,
+        }}>
             {children}
         </WarehouseContext.Provider>
     );
