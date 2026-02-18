@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWarehouse } from '../context/WarehouseContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { STANDARD_ZONES, SPECIAL_ZONES } from '../utils/constants';
-import { LayoutGrid, CheckCircle2, Box, MapPin, Package } from 'lucide-react';
+import { LayoutGrid, CheckCircle2, Box, MapPin, Package, AlertTriangle, ChevronRight } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import clsx from 'clsx';
 
 const Dashboard = () => {
     const { warehouseData: data, loading } = useWarehouse();
     const navigate = useNavigate();
+    const [lowStockCount, setLowStockCount] = useState(0);
+
+    useEffect(() => {
+        supabase.from('inventory').select('id', { count: 'exact', head: true }).eq('qty', 0)
+            .then(({ count }) => setLowStockCount(count || 0));
+    }, []);
 
     if (loading) return (
         <div className="min-h-[50vh] flex items-center justify-center">
@@ -23,6 +30,22 @@ const Dashboard = () => {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
+
+            {/* Low Stock Alert */}
+            {lowStockCount > 0 && (
+                <Link to="/low-stock" className="block bg-gradient-to-r from-red-50 to-amber-50 rounded-2xl border border-red-200 p-4 hover:shadow-md transition group">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <AlertTriangle className="w-6 h-6 text-red-500" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="font-semibold text-red-700">Low Stock Alert</p>
+                            <p className="text-sm text-red-600/80">{lowStockCount} รายการ มียอดคงเหลือเป็น 0</p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-red-400 group-hover:translate-x-1 transition" />
+                    </div>
+                </Link>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">

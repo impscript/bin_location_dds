@@ -143,6 +143,105 @@ export const WarehouseProvider = ({ children }) => {
             getZoneData,
             getBinData,
             searchItems,
+            getProductData: (productId) => {
+                const locations = [];
+                let productInfo = null;
+
+                warehouseData.forEach(bin => {
+                    bin.items.forEach(item => {
+                        if (item._productId === productId) {
+                            if (!productInfo) productInfo = { ...item }; // Capture static info
+                            locations.push({
+                                binId: bin.id,
+                                zone: bin.zone,
+                                qty: item.qty,
+                                binUuid: bin._binUuid
+                            });
+                        }
+                    });
+                });
+
+                if (!productInfo) return null;
+
+                return {
+                    info: productInfo,
+                    locations,
+                    totalQty: locations.reduce((sum, loc) => sum + loc.qty, 0)
+                };
+            },
+            moveItem: async (productId, fromBinId, toBinId, qty, userId, reason) => {
+                const { error } = await supabase.rpc('move_inventory', {
+                    p_product_id: productId,
+                    p_from_bin_id: fromBinId,
+                    p_to_bin_id: toBinId,
+                    p_qty: parseInt(qty),
+                    p_user_id: userId,
+                    p_reason: reason
+                });
+                if (error) throw error;
+                await fetchData(); // Refresh data
+            },
+            adjustStock: async (productId, binId, newQty, userId, reason) => {
+                const { error } = await supabase.rpc('adjust_inventory', {
+                    p_product_id: productId,
+                    p_bin_id: binId,
+                    p_new_qty: parseInt(newQty),
+                    p_user_id: userId,
+                    p_reason: reason
+                });
+                if (error) throw error;
+                await fetchData(); // Refresh data
+            },
+            getProductHistory: async (productId) => {
+                const { data, error } = await supabase.rpc('get_product_history', { p_product_id: productId });
+                if (error) throw error;
+                return data;
+            },
+            startStockCount: async (name, month, year, zoneIds, userId) => {
+                const { data, error } = await supabase.rpc('start_stock_count', {
+                    p_batch_name: name,
+                    p_month: parseInt(month),
+                    p_year: parseInt(year),
+                    p_zone_ids: zoneIds,
+                    p_user_id: userId
+                });
+                if (error) throw error;
+                return data;
+            },
+            getStockCounts: async () => {
+                const { data, error } = await supabase
+                    .from('stock_counts')
+                    .select(`
+                        *,
+                        created_by_user:users!stock_counts_created_by_fkey(display_name),
+                        stock_count_zones(count)
+                    `)
+                    .order('created_at', { ascending: false });
+                if (error) throw error;
+                return data;
+            },
+            updateCountItem: async (itemId, qty, userId) => {
+                const { error } = await supabase.rpc('update_count_item', {
+                    p_item_id: itemId,
+                    p_counted_qty: parseInt(qty),
+                    p_user_id: userId
+                });
+                if (error) throw error;
+            },
+            getVariance: async (id) => {
+                const { data, error } = await supabase.rpc('get_stock_count_variance', {
+                    p_stock_count_id: id
+                });
+                if (error) throw error;
+                return data;
+            },
+            completeStockCount: async (id, userId) => {
+                const { error } = await supabase.rpc('complete_stock_count', {
+                    p_stock_count_id: id,
+                    p_user_id: userId
+                });
+                if (error) throw error;
+            },
             importData,
             clearAllData,
             refreshData: fetchData,

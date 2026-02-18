@@ -16,6 +16,17 @@ const PERMISSIONS = {
         canViewReports: true,
         canDelete: true,
     },
+    wh_admin: {
+        canCreateStockCount: true,
+        canCountStock: true,
+        canCRUDProducts: true,
+        canMoveLocation: true,
+        canImport: true,
+        canExport: true,
+        canManageUsers: false,
+        canViewReports: true,
+        canDelete: true,
+    },
     warehouse: {
         canCreateStockCount: false,
         canCountStock: true,

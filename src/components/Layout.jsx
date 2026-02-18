@@ -4,9 +4,11 @@ import { Search, Package, Box, LogOut, Home, ClipboardList, ScanLine, Settings, 
 import { useWarehouse } from '../context/WarehouseContext';
 import { useAuth } from '../context/AuthContext';
 import DataImportExport from './DataImportExport';
+import NotificationBell from './NotificationBell';
 
 const ROLE_COLORS = {
     admin: { bg: 'bg-red-500', text: 'text-red-400', badge: 'bg-red-500/10 text-red-400', icon: Shield },
+    wh_admin: { bg: 'bg-amber-500', text: 'text-amber-400', badge: 'bg-amber-500/10 text-amber-400', icon: Shield },
     warehouse: { bg: 'bg-green-500', text: 'text-green-400', badge: 'bg-green-500/10 text-green-400', icon: Warehouse },
     accounting: { bg: 'bg-blue-500', text: 'text-blue-400', badge: 'bg-blue-500/10 text-blue-400', icon: Calculator },
 };
@@ -52,10 +54,13 @@ const Layout = () => {
         }
     };
 
-    const handleResultClick = (binId) => {
-        setSearchTerm('');
-        setShowResults(false);
-        navigate(`/bin/${binId}`);
+    const handleResultClick = (res) => {
+        // Use onMouseDown to prevent onBlur from firing before click
+        if (res && res.item && res.item._productId) {
+            setSearchTerm('');
+            setShowResults(false);
+            navigate(`/product/${res.item._productId}`);
+        }
     };
 
     const handleLogout = () => {
@@ -96,6 +101,22 @@ const Layout = () => {
                                 </div>
                             </Link>
                         </div>
+                        {/* Desktop Navigation */}
+                        <div className="hidden md:flex items-center gap-1 mx-4">
+                            {bottomNavItems.map((item) => {
+                                const active = isActive(item.path);
+                                return (
+                                    <Link
+                                        key={item.path}
+                                        to={item.path}
+                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${active ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+                                    >
+                                        <item.icon className="w-4 h-4" />
+                                        {item.label}
+                                    </Link>
+                                );
+                            })}
+                        </div>
 
                         {/* Center: Search Bar (hidden on small mobile) */}
                         <div className="hidden sm:block flex-1 max-w-2xl px-4 md:px-8" ref={searchRef}>
@@ -120,7 +141,10 @@ const Layout = () => {
                                                 {searchResults.map((res, index) => (
                                                     <li key={index}>
                                                         <button
-                                                            onClick={() => handleResultClick(res.binId)}
+                                                            onMouseDown={(e) => {
+                                                                e.preventDefault(); // Prevent input blur
+                                                                handleResultClick(res);
+                                                            }}
                                                             className="w-full text-left px-4 py-3 hover:bg-slate-50 transition border-b border-slate-50 last:border-0 group"
                                                         >
                                                             <div className="flex justify-between items-center mb-1">
@@ -143,8 +167,9 @@ const Layout = () => {
                             </div>
                         </div>
 
-                        {/* Right: Import + User */}
+                        {/* Right: Notifications + Import + User */}
                         <div className="flex items-center gap-3 md:gap-6">
+                            <NotificationBell />
                             {hasPermission('canImport') && (
                                 <button
                                     onClick={() => setIsImportModalOpen(true)}
@@ -166,7 +191,7 @@ const Layout = () => {
                                     <div className="hidden md:flex flex-col items-start">
                                         <span className="text-sm font-medium text-slate-700">{user?.display_name}</span>
                                         <span className={`text-[10px] font-medium ${roleConfig.text}`}>
-                                            {user?.role === 'admin' ? 'Admin' : user?.role === 'warehouse' ? 'Warehouse' : 'Accounting'}
+                                            {user?.role === 'admin' ? 'Admin' : user?.role === 'wh_admin' ? 'WH Admin' : user?.role === 'warehouse' ? 'Warehouse' : 'Accounting'}
                                         </span>
                                     </div>
                                 </button>
@@ -177,9 +202,34 @@ const Layout = () => {
                                         <div className="px-4 py-3 border-b border-slate-100">
                                             <p className="text-sm font-medium text-slate-800">{user?.display_name}</p>
                                             <p className={`text-xs mt-0.5 ${roleConfig.text}`}>
-                                                {user?.role === 'admin' ? 'ผู้ดูแลระบบ' : user?.role === 'warehouse' ? 'คลังสินค้า' : 'บัญชี'}
+                                                {user?.role === 'admin' ? 'ผู้ดูแลระบบ' : user?.role === 'wh_admin' ? 'หัวหน้าคลัง' : user?.role === 'warehouse' ? 'คลังสินค้า' : 'บัญชี'}
                                             </p>
                                         </div>
+                                        <Link
+                                            to="/stock-count"
+                                            onClick={() => setShowUserMenu(false)}
+                                            className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition flex items-center gap-2"
+                                        >
+                                            <ClipboardList className="w-4 h-4 text-slate-400" />
+                                            Stock Count
+                                        </Link>
+                                        <Link
+                                            to="/scan"
+                                            onClick={() => setShowUserMenu(false)}
+                                            className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition flex items-center gap-2 md:hidden"
+                                        >
+                                            <ScanLine className="w-4 h-4 text-slate-400" />
+                                            Scan
+                                        </Link>
+                                        <Link
+                                            to="/settings"
+                                            onClick={() => setShowUserMenu(false)}
+                                            className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition flex items-center gap-2 md:hidden"
+                                        >
+                                            <Settings className="w-4 h-4 text-slate-400" />
+                                            Settings
+                                        </Link>
+                                        <div className="border-t border-slate-100 my-1"></div>
                                         <button
                                             onClick={handleLogout}
                                             className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
@@ -216,8 +266,11 @@ const Layout = () => {
                                     {searchResults.map((res, index) => (
                                         <li key={index}>
                                             <button
-                                                onClick={() => handleResultClick(res.binId)}
-                                                className="w-full text-left px-3 py-2.5 hover:bg-slate-50 transition text-sm"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    handleResultClick(res);
+                                                }}
+                                                className="w-full text-left px-3 py-2.5 hover:bg-slate-50 transition text-sm text-slate-900"
                                             >
                                                 <div className="font-medium text-slate-800">{res.item.code}</div>
                                                 <div className="text-xs text-slate-500 truncate">{res.item.name} · {res.binId}</div>
@@ -248,8 +301,8 @@ const Layout = () => {
                                 key={item.path}
                                 to={item.path}
                                 className={`flex flex-col items-center justify-center gap-1 px-3 py-1 rounded-lg transition-all min-w-[60px] ${active
-                                        ? 'text-blue-600'
-                                        : 'text-slate-400 hover:text-slate-600'
+                                    ? 'text-blue-600'
+                                    : 'text-slate-400 hover:text-slate-600'
                                     }`}
                             >
                                 <Icon className={`w-5 h-5 ${active ? 'stroke-[2.5]' : ''}`} />

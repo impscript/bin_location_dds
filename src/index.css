@@ -2,21 +2,431 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════
+   DARK MODE — Global overrides
+   When .dark is on <html>, invert everything
+   ═══════════════════════════════════════════ */
 
+/* Body base */
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-slate-50 text-slate-900 transition-colors duration-200;
+  }
+
+  .dark body {
+    @apply bg-slate-900 text-slate-100;
   }
 }
 
+/* ——— Background overrides ——— */
+.dark .bg-white {
+  background-color: #1e293b !important;
+  /* slate-800 */
+}
+
+.dark .bg-slate-50 {
+  background-color: #0f172a !important;
+  /* slate-950 */
+}
+
+.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+.dark .bg-emerald-50,
+.dark .bg-green-50 {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+.dark .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+.dark .bg-yellow-50 {
+  background-color: rgba(234, 179, 8, 0.15) !important;
+}
+
+/* ——— Text overrides ——— */
+.dark .text-slate-900 {
+  color: #f1f5f9 !important;
+  /* slate-100 */
+}
+
+.dark .text-slate-800 {
+  color: #e2e8f0 !important;
+  /* slate-200 */
+}
+
+.dark .text-slate-700 {
+  color: #cbd5e1 !important;
+  /* slate-300 */
+}
+
+.dark .text-slate-600 {
+  color: #94a3b8 !important;
+  /* slate-400 */
+}
+
+.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* ——— Border overrides ——— */
+.dark .border-slate-200 {
+  border-color: #334155 !important;
+  /* slate-700 */
+}
+
+.dark .border-slate-100 {
+  border-color: #1e293b !important;
+  /* slate-800 */
+}
+
+.dark .border-slate-300 {
+  border-color: #475569 !important;
+}
+
+.dark .border-amber-100 {
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+.dark .border-red-100 {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.dark .border-emerald-100,
+.dark .border-green-100 {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.dark .border-blue-100 {
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* ——— Divide overrides ——— */
+.dark .divide-slate-100> :not([hidden])~ :not([hidden]) {
+  border-color: #1e293b !important;
+}
+
+.dark .divide-slate-200> :not([hidden])~ :not([hidden]) {
+  border-color: #334155 !important;
+}
+
+/* ——— Input / Form ——— */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #3b82f6 !important;
+  background-color: #1e293b !important;
+}
+
+/* ——— Hover overrides ——— */
+.dark .hover\:bg-slate-50:hover {
+  background-color: #334155 !important;
+}
+
+.dark .hover\:bg-slate-100:hover {
+  background-color: #334155 !important;
+}
+
+/* ——— Ring / Shadow ——— */
+.dark .ring-slate-100 {
+  --tw-ring-color: #334155 !important;
+}
+
+.dark .shadow-sm {
+  --tw-shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* ——— Navbar specific ——— */
+.dark nav.sticky,
+.dark nav.fixed,
+.dark .sm\:hidden.sticky,
+.dark nav.md\:hidden.fixed {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* ——— Bottom nav ——— */
+.dark nav.md\:hidden {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* ——— Search results dropdown ——— */
+.dark .absolute.top-full {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* ——— User dropdown ——— */
+.dark .absolute.right-0 .border-b {
+  border-color: #334155 !important;
+}
+
+/* ——— Alert banners ——— */
+.dark .bg-amber-50\/80,
+.dark .bg-yellow-50 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+}
+
+/* ——— Table headers ——— */
+.dark thead tr,
+.dark .bg-slate-50 th {
+  background-color: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+/* ——— Scrollbar (Webkit) ——— */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+
+/* ═══════════════════════════════════════════
+   PRINT — Professional A4 Report Layout
+   ═══════════════════════════════════════════ */
+
 @media print {
   @page {
-    size: A5 landscape;
-    margin: 0;
+    size: A4 landscape;
+    margin: 7mm;
   }
 
+  /* Force print colors */
+  * {
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Reset dark mode for print */
+  .dark .bg-white {
+    background-color: white !important;
+  }
+
+  .dark .text-slate-900,
+  .dark .text-slate-800,
+  .dark .text-slate-700,
+  .dark .text-slate-600 {
+    color: #111 !important;
+  }
+
+  body {
+    background: white !important;
+    color: #111 !important;
+    font-size: 8pt !important;
+    line-height: 1.2 !important;
+    -webkit-font-smoothing: auto;
+  }
+
+  /* Hide non-printable elements */
+  nav,
+  footer,
+  .no-print,
+  .print\:hidden,
+  [class*="sticky"],
+  [class*="fixed bottom"] {
+    display: none !important;
+  }
+
+  /* Hide all buttons */
+  button:not(.print-keep) {
+    display: none !important;
+  }
+
+  /* Hide back link */
+  a.inline-flex {
+    display: none !important;
+  }
+
+  /* Reset wrapper — full bleed */
+  main,
+  .max-w-7xl,
+  .max-w-6xl {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Remove decorative styles */
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl {
+    box-shadow: none !important;
+  }
+
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-lg {
+    border-radius: 2px !important;
+  }
+
+  /* ——— Table: the key fix for overflow ——— */
+  table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    font-size: 7pt !important;
+    border-collapse: collapse !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  /* Column widths — tightly controlled */
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 3% !important;
+  }
+
+  /* # */
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 11% !important;
+  }
+
+  /* Product Code */
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 24% !important;
+  }
+
+  /* Product Name */
+  th:nth-child(4),
+  td:nth-child(4) {
+    width: 8% !important;
+  }
+
+  /* Bin */
+  th:nth-child(5),
+  td:nth-child(5) {
+    width: 7% !important;
+  }
+
+  /* System */
+  th:nth-child(6),
+  td:nth-child(6) {
+    width: 7% !important;
+  }
+
+  /* Counted */
+  th:nth-child(7),
+  td:nth-child(7) {
+    width: 7% !important;
+  }
+
+  /* Variance */
+  th:nth-child(8),
+  td:nth-child(8) {
+    width: 8% !important;
+  }
+
+  /* Status */
+  th:nth-child(9),
+  td:nth-child(9) {
+    width: 10% !important;
+  }
+
+  /* Counted By */
+  th:nth-child(10),
+  td:nth-child(10) {
+    width: 10% !important;
+  }
+
+  /* Time */
+
+  th {
+    background-color: #e2e8f0 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 6pt !important;
+    letter-spacing: 0.3px !important;
+    padding: 3px 4px !important;
+    border-bottom: 1.5pt solid #334155 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+  }
+
+  td {
+    padding: 2px 4px !important;
+    border-bottom: 0.5pt solid #e2e8f0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.3 !important;
+    vertical-align: top !important;
+  }
+
+  /* Truncate long product names */
+  td .truncate,
+  td .max-w-\[200px\] {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  tr:nth-child(even) td {
+    background-color: #f8fafc !important;
+  }
+
+  /* Avoid cutting rows across pages */
+  tr {
+    page-break-inside: avoid !important;
+  }
+
+  /* Repeat header on each page */
+  thead {
+    display: table-header-group !important;
+  }
+
+  /* Page breaks */
   .print-page-break {
     page-break-after: always;
     break-after: page;
+  }
+
+  /* Print header/footer visibility */
+  .hidden.print\\:block {
+    display: block !important;
   }
 }

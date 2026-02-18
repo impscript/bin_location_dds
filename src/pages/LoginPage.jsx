@@ -11,6 +11,14 @@ const ROLE_CONFIG = {
         label: 'ผู้ดูแลระบบ',
         desc: 'เข้าถึงทุกฟีเจอร์ จัดการระบบ',
     },
+    wh_admin: {
+        icon: Shield,
+        color: 'text-amber-400',
+        bgColor: 'bg-amber-500/10 border-amber-500/30',
+        hoverBg: 'hover:bg-amber-500/20',
+        label: 'หัวหน้าคลัง',
+        desc: 'สร้างรอบนับ, จัดการ Stock Count',
+    },
     warehouse: {
         icon: Warehouse,
         color: 'text-green-400',
@@ -74,8 +82,8 @@ export default function LoginPage() {
                                     key={u.id}
                                     onClick={() => setSelectedUser(u)}
                                     className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 text-left ${isSelected
-                                            ? `${config.bgColor} ring-2 ring-offset-0 ring-${u.role === 'admin' ? 'red' : u.role === 'warehouse' ? 'green' : 'blue'}-500/50`
-                                            : `bg-gray-800/50 border-gray-700/50 ${config.hoverBg}`
+                                        ? `${config.bgColor} ring-2 ring-offset-0 ring-${u.role === 'admin' ? 'red' : u.role === 'wh_admin' ? 'amber' : u.role === 'warehouse' ? 'green' : 'blue'}-500/50`
+                                        : `bg-gray-800/50 border-gray-700/50 ${config.hoverBg}`
                                         }`}
                                 >
                                     <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${config.bgColor}`}>
@@ -112,8 +120,8 @@ export default function LoginPage() {
                         onClick={handleLogin}
                         disabled={!selectedUser}
                         className={`w-full mt-6 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all duration-200 ${selectedUser
-                                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/25'
-                                : 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                            ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/25'
+                            : 'bg-gray-800 text-gray-600 cursor-not-allowed'
                             }`}
                     >
                         <LogIn className="w-4 h-4" />

@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useWarehouse } from '../context/WarehouseContext';
-import { ArrowLeft, Package, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { ArrowLeft, Package, ArrowRight, RefreshCw } from 'lucide-react';
 import clsx from 'clsx';
+import MoveItemModal from '../components/MoveItemModal';
+import AdjustStockModal from '../components/AdjustStockModal';
+import CopyBadge from '../components/CopyBadge';
 
 const BinDetail = () => {
     const { binId } = useParams();
     const { getBinData } = useWarehouse();
+    const { hasPermission } = useAuth();
+
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [isMoveOpen, setIsMoveOpen] = useState(false);
+    const [isAdjustOpen, setIsAdjustOpen] = useState(false);
 
     // Decoding if needed, though react-router usually handles standard URL encoding
     // Bin IDs have spaces? e.g. "OB_Non A1-1"
@@ -15,6 +24,20 @@ const BinDetail = () => {
     if (!bin) {
         return <div className="p-10 text-center text-slate-500">Bin not found: {binId}</div>;
     }
+
+    const handleMove = (item) => {
+        setSelectedItem(item);
+        setIsMoveOpen(true);
+    };
+
+    const handleAdjust = (item) => {
+        setSelectedItem(item);
+        setIsAdjustOpen(true);
+    };
+
+    const canMove = hasPermission('canMoveLocation');
+    // For adjust, we use 'canCRUDProducts' as a proxy for stock adjustment rights
+    const canAdjust = hasPermission('canCRUDProducts');
 
     return (
         <div className="space-y-6">
@@ -52,9 +75,12 @@ const BinDetail = () => {
                         <table className="min-w-full divide-y divide-slate-200">
                             <thead className="bg-slate-50">
                                 <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-1/2">Product Information</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-5/12">Product Information</th>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Codes</th>
                                     <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Stock Level</th>
+                                    {(canMove || canAdjust) && (
+                                        <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-slate-200">
@@ -65,9 +91,13 @@ const BinDetail = () => {
                                             {/* Product Information */}
                                             <td className="px-6 py-4 align-top">
                                                 <div className="flex flex-col gap-1">
-                                                    <div className="text-sm font-bold text-slate-800 line-clamp-2" title={item.nsName || item.name}>
+                                                    <Link
+                                                        to={`/product/${item._productId}`}
+                                                        className="text-sm font-bold text-slate-800 hover:text-blue-600 hover:underline line-clamp-2 transition-colors"
+                                                        title={item.nsName || item.name}
+                                                    >
                                                         {item.nsName || item.name}
-                                                    </div>
+                                                    </Link>
                                                     {item.nsName && item.name && item.nsName !== item.name && (
                                                         <div className="text-xs text-slate-500 line-clamp-1" title={item.name}>
                                                             <span className="font-medium text-slate-400 mr-1">Legacy:</span>
@@ -94,15 +124,11 @@ const BinDetail = () => {
                                                 <div className="flex flex-col gap-1.5">
                                                     <div>
                                                         <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">NS Code</p>
-                                                        <span className="font-mono text-sm font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                                                            {item.nsCode || '-'}
-                                                        </span>
+                                                        <CopyBadge text={item.nsCode} variant="blue" size="md" />
                                                     </div>
                                                     <div>
                                                         <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Legacy</p>
-                                                        <span className="font-mono text-xs text-slate-500 pl-1">
-                                                            {item.code}
-                                                        </span>
+                                                        <CopyBadge text={item.code} variant="slate" size="md" />
                                                     </div>
                                                 </div>
                                             </td>
@@ -128,6 +154,32 @@ const BinDetail = () => {
                                                     </span>
                                                 </div>
                                             </td>
+
+                                            {/* Actions */}
+                                            {(canMove || canAdjust) && (
+                                                <td className="px-6 py-4 whitespace-nowrap text-right align-top">
+                                                    <div className="flex flex-col gap-2 items-end">
+                                                        {canMove && (
+                                                            <button
+                                                                onClick={() => handleMove(item)}
+                                                                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition border border-blue-100"
+                                                            >
+                                                                <ArrowRight className="w-3.5 h-3.5" />
+                                                                Move
+                                                            </button>
+                                                        )}
+                                                        {canAdjust && (
+                                                            <button
+                                                                onClick={() => handleAdjust(item)}
+                                                                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition border border-slate-200"
+                                                            >
+                                                                <RefreshCw className="w-3.5 h-3.5" />
+                                                                Adjust
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     );
                                 })}
@@ -141,6 +193,20 @@ const BinDetail = () => {
                     </div>
                 )}
             </div>
+
+            {/* Modals */}
+            <MoveItemModal
+                isOpen={isMoveOpen}
+                onClose={() => setIsMoveOpen(false)}
+                item={selectedItem}
+                currentBinId={binId}
+            />
+            <AdjustStockModal
+                isOpen={isAdjustOpen}
+                onClose={() => setIsAdjustOpen(false)}
+                item={selectedItem}
+                currentBinId={binId}
+            />
         </div>
     );
 };
