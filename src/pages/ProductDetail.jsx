@@ -119,6 +119,22 @@ const ProductDetail = () => {
                         <div className="mt-4 text-xs text-slate-400">
                             Stored in {locations.length} location{locations.length !== 1 ? 's' : ''}
                         </div>
+
+                        {/* QR Code for NS Code */}
+                        {info.nsCode && (
+                            <div className="mt-5 pt-5 border-t border-slate-200 w-full flex flex-col items-center">
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">NS Code QR</p>
+                                <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+                                    <img
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(info.nsCode)}`}
+                                        alt={`QR: ${info.nsCode}`}
+                                        className="w-[120px] h-[120px]"
+                                        loading="lazy"
+                                    />
+                                </div>
+                                <p className="mt-2 text-xs font-mono text-slate-500">{info.nsCode}</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
