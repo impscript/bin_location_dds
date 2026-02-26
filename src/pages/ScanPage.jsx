@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { ScanLine, Keyboard, Camera, Search, Box, MapPin, ArrowRight, ClipboardList } from 'lucide-react';
+import { ScanLine, Keyboard, Camera, Search, Box, MapPin, ArrowRight, ClipboardList, PackagePlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWarehouse } from '../context/WarehouseContext';
+import { useAuth } from '../context/AuthContext';
 import BarcodeScanner from '../components/BarcodeScanner';
+import AddProductModal from '../components/AddProductModal';
 
 export default function ScanPage() {
     const [manualInput, setManualInput] = useState('');
@@ -10,9 +12,12 @@ export default function ScanPage() {
     const [scanResults, setScanResults] = useState([]);
     const [hasSearched, setHasSearched] = useState(false);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
+    const [isAddOpen, setIsAddOpen] = useState(false);
 
     const navigate = useNavigate();
     const { searchItems, getBinData } = useWarehouse();
+    const { hasPermission } = useAuth();
+    const canAddProduct = hasPermission('canCRUDProducts');
 
     const handleSearch = (query) => {
         if (!query) return;
@@ -150,10 +155,20 @@ export default function ScanPage() {
                     </div>
 
                     {scanResults.length === 0 ? (
-                        <div className="bg-slate-50 rounded-xl p-8 text-center border border-slate-100">
+                        <div className="bg-slate-50 flex flex-col justify-center rounded-xl p-8 text-center border border-slate-100 items-center">
                             <Box className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                            <p className="text-slate-500 font-medium">ไม่พบข้อมูล</p>
-                            <p className="text-xs text-slate-400 mt-1">ลองตรวจสอบรหัสสินค้า หรือ Bin Code อีกครั้ง</p>
+                            <p className="text-slate-500 font-medium">ไม่พบข้อมูลสินค้า</p>
+                            <p className="text-xs text-slate-400 mt-1 mb-5">ลองตรวจสอบรหัสสินค้า หรือ Bin Code อีกครั้ง</p>
+
+                            {canAddProduct && (
+                                <button
+                                    onClick={() => setIsAddOpen(true)}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition shadow-sm w-full max-w-xs justify-center"
+                                >
+                                    <PackagePlus className="w-5 h-5" />
+                                    <span>สร้างสินค้าใหม่ด้วยรหัสนี้</span>
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <div className="space-y-3">
@@ -214,6 +229,12 @@ export default function ScanPage() {
                     </ul>
                 </div>
             )}
+
+            <AddProductModal
+                isOpen={isAddOpen}
+                onClose={() => setIsAddOpen(false)}
+                initialCode={manualInput}
+            />
         </div>
     );
 }

@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useWarehouse } from '../context/WarehouseContext';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Package, ArrowRight, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Package, ArrowRight, RefreshCw, PlusCircle } from 'lucide-react';
 import clsx from 'clsx';
 import MoveItemModal from '../components/MoveItemModal';
 import AdjustStockModal from '../components/AdjustStockModal';
+import AddProductModal from '../components/AddProductModal';
 import CopyBadge from '../components/CopyBadge';
 
 const BinDetail = () => {
@@ -16,6 +17,7 @@ const BinDetail = () => {
     const [selectedItem, setSelectedItem] = useState(null);
     const [isMoveOpen, setIsMoveOpen] = useState(false);
     const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+    const [isAddOpen, setIsAddOpen] = useState(false);
 
     // Decoding if needed, though react-router usually handles standard URL encoding
     // Bin IDs have spaces? e.g. "OB_Non A1-1"
@@ -65,9 +67,20 @@ const BinDetail = () => {
 
             {/* Inventory Table */}
             <div className="bg-white shadow-sm border border-slate-200 rounded-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                    <h3 className="font-semibold text-slate-800">Inventory Items</h3>
-                    <span className="text-sm text-slate-500">{bin.items.length} items found</span>
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 className="font-semibold text-slate-800">Inventory Items</h3>
+                        <span className="text-sm text-slate-500">{bin.items.length} items found</span>
+                    </div>
+                    {canAdjust && (
+                        <button
+                            onClick={() => setIsAddOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition shadow-sm hover:shadow-md"
+                        >
+                            <PlusCircle className="w-4 h-4" />
+                            Add Item to Bin
+                        </button>
+                    )}
                 </div>
 
                 {bin.items.length > 0 ? (
@@ -206,6 +219,11 @@ const BinDetail = () => {
                 onClose={() => setIsAdjustOpen(false)}
                 item={selectedItem}
                 currentBinId={binId}
+            />
+            <AddProductModal
+                isOpen={isAddOpen}
+                onClose={() => setIsAddOpen(false)}
+                initialBinId={binId}
             />
         </div>
     );

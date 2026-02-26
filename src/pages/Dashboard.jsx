@@ -2,14 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useWarehouse } from '../context/WarehouseContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { STANDARD_ZONES, SPECIAL_ZONES } from '../utils/constants';
-import { LayoutGrid, CheckCircle2, Box, MapPin, Package, AlertTriangle, ChevronRight } from 'lucide-react';
+import { LayoutGrid, CheckCircle2, Box, MapPin, Package, AlertTriangle, ChevronRight, PackagePlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import clsx from 'clsx';
+import AddProductModal from '../components/AddProductModal';
 
 const Dashboard = () => {
     const { warehouseData: data, loading } = useWarehouse();
+    const { hasPermission } = useAuth();
     const navigate = useNavigate();
     const [lowStockCount, setLowStockCount] = useState(0);
+    const [isAddOpen, setIsAddOpen] = useState(false);
+
+    const canAddProduct = hasPermission('canCRUDProducts');
 
     useEffect(() => {
         supabase.from('inventory').select('id', { count: 'exact', head: true }).eq('qty', 0)
@@ -31,21 +37,46 @@ const Dashboard = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
 
-            {/* Low Stock Alert */}
-            {lowStockCount > 0 && (
-                <Link to="/low-stock" className="block bg-gradient-to-r from-red-50 to-amber-50 rounded-2xl border border-red-200 p-4 hover:shadow-md transition group">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <AlertTriangle className="w-6 h-6 text-red-500" />
+            {/* Quick Actions & Alerts */}
+            <div className="flex flex-col md:flex-row gap-4">
+                {/* Low Stock Alert */}
+                {lowStockCount > 0 && (
+                    <Link to="/low-stock" className="flex-1 bg-gradient-to-r from-red-50 to-amber-50 rounded-2xl border border-red-200 p-4 hover:shadow-md transition group">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <AlertTriangle className="w-6 h-6 text-red-500" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="font-semibold text-red-700">Low Stock Alert</p>
+                                <p className="text-sm text-red-600/80">{lowStockCount} รายการ มียอดคงเหลือเป็น 0</p>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-red-400 group-hover:translate-x-1 transition" />
                         </div>
-                        <div className="flex-1">
-                            <p className="font-semibold text-red-700">Low Stock Alert</p>
-                            <p className="text-sm text-red-600/80">{lowStockCount} รายการ มียอดคงเหลือเป็น 0</p>
+                    </Link>
+                )}
+
+                {/* Add New Product Quick Action */}
+                {canAddProduct && (
+                    <button
+                        onClick={() => setIsAddOpen(true)}
+                        className={clsx(
+                            "bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-4 hover:shadow-lg hover:shadow-blue-500/30 transition group flex items-center justify-between text-left",
+                            lowStockCount > 0 ? "w-full md:w-1/3" : "w-full"
+                        )}
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30 flex-shrink-0">
+                                <PackagePlus className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <p className="font-bold text-white text-lg leading-tight">Add Product</p>
+                                <p className="text-sm text-blue-100 mt-0.5">เพิ่มสินค้าเข้าคลัง หรือสร้าง Master Data ใหม่</p>
+                            </div>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-red-400 group-hover:translate-x-1 transition" />
-                    </div>
-                </Link>
-            )}
+                        <ChevronRight className="w-5 h-5 text-white/70 group-hover:translate-x-1 transition hidden sm:block" />
+                    </button>
+                )}
+            </div>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
@@ -168,6 +199,11 @@ const Dashboard = () => {
                     })}
                 </div>
             </div>
+
+            <AddProductModal
+                isOpen={isAddOpen}
+                onClose={() => setIsAddOpen(false)}
+            />
         </div>
     );
 };
