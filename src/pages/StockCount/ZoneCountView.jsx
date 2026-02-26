@@ -3,10 +3,11 @@ import CopyBadge from '../../components/CopyBadge';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowLeft, Check, Save, AlertTriangle, Search, Filter, ScanLine } from 'lucide-react';
+import { ArrowLeft, Check, Save, AlertTriangle, Search, Filter, ScanLine, PackagePlus } from 'lucide-react';
 import clsx from 'clsx';
 import { useWarehouse } from '../../context/WarehouseContext';
 import BarcodeScanner from '../../components/BarcodeScanner';
+import AddProductModal from '../../components/AddProductModal';
 
 const ZoneCountView = () => {
     const { id, zoneId } = useParams();
@@ -21,6 +22,7 @@ const ZoneCountView = () => {
     const [savingId, setSavingId] = useState(null);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [isCompleted, setIsCompleted] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     // Ref for search input
     const searchInputRef = React.useRef(null);
@@ -202,8 +204,22 @@ const ZoneCountView = () => {
             {/* List Content - Scrollable */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {Object.keys(groupedItems).length === 0 ? (
-                    <div className="text-center py-12 text-slate-400">
-                        No items found matching criteria.
+                    <div className="flex flex-col items-center justify-center py-16 text-slate-500 bg-white rounded-xl shadow-sm border border-slate-200">
+                        <PackagePlus className="w-12 h-12 text-slate-300 mb-3" />
+                        <p className="text-lg font-medium text-slate-600">No items found matching criteria</p>
+                        <p className="text-sm text-slate-400 mb-6 text-center max-w-xs">
+                            If you found an item that is not in the system for this zone, you can add it as an unexpected item.
+                        </p>
+
+                        {!isCompleted && (
+                            <button
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium shadow-sm hover:bg-blue-700 active:scale-95 transition"
+                            >
+                                <PackagePlus className="w-5 h-5" />
+                                + Add Unexpected Item
+                            </button>
+                        )}
                     </div>
                 ) : (
                     Object.entries(groupedItems).map(([binCode, binItems]) => (
@@ -231,6 +247,27 @@ const ZoneCountView = () => {
                     ))
                 )}
             </div>
+
+            {/* Add Unexpected Item Modal */}
+            <AddProductModal
+                isOpen={isAddModalOpen}
+                onClose={() => {
+                    setIsAddModalOpen(false);
+                    // Minimal slight delay to allow modal close animation, then refresh data
+                    setTimeout(() => {
+                        const evt = new CustomEvent('refresh-zone-data');
+                        window.dispatchEvent(evt); // We can trigger a refetch here or just lift fetchData
+                        // Alternatively since we didn't extract fetchData, we just reload the page for simplicity and guaranteed consistency for now
+                        window.location.reload();
+                    }, 300);
+                }}
+                initialCode={searchTerm}
+                isStockCountMode={true}
+                stockCountIdentifiers={{
+                    stockCountId: zoneInfo?.stock_count_id,
+                    stockCountZoneId: zoneId
+                }}
+            />
         </div>
     );
 };

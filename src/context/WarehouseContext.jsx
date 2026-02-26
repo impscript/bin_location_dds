@@ -206,6 +206,21 @@ export const WarehouseProvider = ({ children }) => {
                 if (error) throw error;
                 await fetchData();
             },
+            addUnexpectedCountItem: async (stockCountId, stockCountZoneId, productData, binId, qty, userId) => {
+                const { error } = await supabase.rpc('add_unexpected_count_item', {
+                    p_stock_count_id: stockCountId,
+                    p_stock_count_zone_id: stockCountZoneId,
+                    p_bin_id: binId,
+                    p_ns_code: productData.ns_code,
+                    p_product_code: productData.product_code,
+                    p_product_name: productData.product_name,
+                    p_unit: productData.unit,
+                    p_ns_sub_group: productData.ns_sub_group,
+                    p_qty: parseInt(qty),
+                    p_user_id: userId
+                });
+                if (error) throw error;
+            },
             getProductHistory: async (productId) => {
                 const { data, error } = await supabase.rpc('get_product_history', { p_product_id: productId });
                 if (error) throw error;

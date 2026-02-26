@@ -5,9 +5,16 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 
-export default function AddProductModal({ isOpen, onClose, initialBinId = '', initialCode = '' }) {
+export default function AddProductModal({
+    isOpen,
+    onClose,
+    initialBinId = '',
+    initialCode = '',
+    isStockCountMode = false,
+    stockCountIdentifiers = null // { stockCountId, stockCountZoneId }
+}) {
     const { user } = useAuth();
-    const { addInventoryRecord, warehouseData } = useWarehouse();
+    const { addInventoryRecord, addUnexpectedCountItem, warehouseData } = useWarehouse();
 
     // Form State
     const [nsCode, setNsCode] = useState(initialCode);
@@ -148,13 +155,32 @@ export default function AddProductModal({ isOpen, onClose, initialBinId = '', in
 
         try {
             setIsSubmitting(true);
-            await addInventoryRecord(productData, targetBin._binUuid, qty, user.id);
-            toast.success(
-                <div className="flex flex-col">
-                    <span className="font-bold">เพิ่มสินค้าสำเร็จ!</span>
-                    <span className="text-sm opacity-90">{productName} ➔ {binCode}</span>
-                </div>
-            );
+
+            if (isStockCountMode && stockCountIdentifiers) {
+                await addUnexpectedCountItem(
+                    stockCountIdentifiers.stockCountId,
+                    stockCountIdentifiers.stockCountZoneId,
+                    productData,
+                    targetBin._binUuid,
+                    qty,
+                    user.id
+                );
+                toast.success(
+                    <div className="flex flex-col">
+                        <span className="font-bold">เพิ่มรายการเข้าใบตรวจนับสำเร็จ!</span>
+                        <span className="text-sm opacity-90">{productName} ➔ {binCode} (Qty: {qty})</span>
+                    </div>
+                );
+            } else {
+                await addInventoryRecord(productData, targetBin._binUuid, qty, user.id);
+                toast.success(
+                    <div className="flex flex-col">
+                        <span className="font-bold">เพิ่มสินค้าเข้าคลังสำเร็จ!</span>
+                        <span className="text-sm opacity-90">{productName} ➔ {binCode} (Qty: {qty})</span>
+                    </div>
+                );
+            }
+
             onClose();
         } catch (err) {
             console.error('Add product error:', err);
@@ -191,8 +217,14 @@ export default function AddProductModal({ isOpen, onClose, initialBinId = '', in
                             <PackagePlus className="w-7 h-7" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold tracking-tight shadow-sm">Add New Item</h2>
-                            <p className="text-blue-100 text-sm font-medium">เพิ่มสินค้าเข้าสต็อก หรือสร้างรายการใหม่</p>
+                            <h2 className="text-2xl font-bold tracking-tight shadow-sm">
+                                {isStockCountMode ? 'Add Unexpected Item' : 'Add New Item'}
+                            </h2>
+                            <p className="text-blue-100 text-sm font-medium">
+                                {isStockCountMode
+                                    ? 'เพิ่มสินค้าที่ไม่อยู่ในใบตรวจนับ ณ ปัจจุบัน'
+                                    : 'เพิ่มสินค้าเข้าสต็อก หรือสร้างรายการใหม่'}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -381,6 +413,12 @@ export default function AddProductModal({ isOpen, onClose, initialBinId = '', in
                             </>
                         )}
                     </button>
+
+                    {isStockCountMode && (
+                        <p className="text-center text-xs text-slate-500 mt-3 font-medium">
+                            * สินค้านี้จะถูกบันทึกลงใบตรวจนับ โดยมี System Qty เป็น 0 และรอการ Post ยอดเข้าคลังในภายหลัง
+                        </p>
+                    )}
                 </form>
             </div>
         </div>
