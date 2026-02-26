@@ -197,7 +197,12 @@ export default function AddProductModal({
             <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-white/20 flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200 delay-75">
 
                 {/* Header Decoration */}
-                <div className="relative h-32 bg-gradient-to-br from-blue-600 to-indigo-700 overflow-hidden flex-shrink-0">
+                <div className={clsx(
+                    "relative h-32 overflow-hidden flex-shrink-0",
+                    isStockCountMode
+                        ? "bg-gradient-to-br from-amber-600 to-orange-700"
+                        : "bg-gradient-to-br from-blue-600 to-indigo-700"
+                )}>
                     {/* SVG Pattern */}
                     <svg className="absolute inset-0 w-full h-full opacity-20 Mix-blend-overlay" xmlns="http://www.w3.org/2000/svg">
                         <defs>
@@ -253,7 +258,10 @@ export default function AddProductModal({
                                 value={nsCode}
                                 onChange={(e) => setNsCode(e.target.value)}
                                 placeholder="เช่น 2CT-XX..."
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition shadow-sm uppercase font-mono text-sm"
+                                className={clsx(
+                                    "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition shadow-sm uppercase font-mono text-sm",
+                                    isStockCountMode ? "focus:ring-amber-500/30 focus:border-amber-500" : "focus:ring-blue-500/30 focus:border-blue-500"
+                                )}
                             />
                         </div>
 
@@ -266,7 +274,10 @@ export default function AddProductModal({
                                 value={productCode}
                                 onChange={(e) => setProductCode(e.target.value)}
                                 placeholder="รหัสเดิม..."
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition shadow-sm font-mono text-sm uppercase"
+                                className={clsx(
+                                    "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition shadow-sm font-mono text-sm uppercase",
+                                    isStockCountMode ? "focus:ring-amber-500/30 focus:border-amber-500" : "focus:ring-blue-500/30 focus:border-blue-500"
+                                )}
                             />
                         </div>
 
@@ -280,7 +291,10 @@ export default function AddProductModal({
                                 value={productName}
                                 onChange={(e) => setProductName(e.target.value)}
                                 placeholder="แฟ้มสันกว้าง ตราช้าง..."
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition shadow-sm"
+                                className={clsx(
+                                    "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition shadow-sm",
+                                    isStockCountMode ? "focus:ring-amber-500/30 focus:border-amber-500" : "focus:ring-blue-500/30 focus:border-blue-500"
+                                )}
                             />
                         </div>
 
@@ -291,7 +305,10 @@ export default function AddProductModal({
                                 value={unit}
                                 onChange={(e) => setUnit(e.target.value)}
                                 placeholder="EA, BOX, PC..."
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition shadow-sm uppercase"
+                                className={clsx(
+                                    "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition shadow-sm uppercase",
+                                    isStockCountMode ? "focus:ring-amber-500/30 focus:border-amber-500" : "focus:ring-blue-500/30 focus:border-blue-500"
+                                )}
                             />
                         </div>
 
@@ -302,7 +319,10 @@ export default function AddProductModal({
                                 value={nsSubGroup}
                                 onChange={(e) => setNsSubGroup(e.target.value)}
                                 placeholder="Stationery..."
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition shadow-sm"
+                                className={clsx(
+                                    "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition shadow-sm",
+                                    isStockCountMode ? "focus:ring-amber-500/30 focus:border-amber-500" : "focus:ring-blue-500/30 focus:border-blue-500"
+                                )}
                             />
                             {/* Sub Group Dropdown */}
                             {subGroupSearchResults.length > 0 && nsSubGroup.length > 0 && subGroupSearchResults[0].toLowerCase() !== nsSubGroup.toLowerCase() && (
@@ -315,7 +335,10 @@ export default function AddProductModal({
                                                 setNsSubGroup(group);
                                                 setSubGroupSearchResults([]);
                                             }}
-                                            className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition border-b border-slate-50 last:border-0 font-medium text-slate-700"
+                                            className={clsx(
+                                                "w-full text-left px-4 py-2.5 transition border-b border-slate-50 last:border-0 font-medium text-slate-700",
+                                                isStockCountMode ? "hover:bg-amber-50" : "hover:bg-blue-50"
+                                            )}
                                         >
                                             {group}
                                         </button>
@@ -343,7 +366,9 @@ export default function AddProductModal({
                                     "w-full px-4 py-2.5 border rounded-xl font-mono transition shadow-sm",
                                     initialBinId
                                         ? "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
-                                        : "bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                                        : isStockCountMode
+                                            ? "bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+                                            : "bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                                 )}
                             />
                             {/* Bin Code Dropdown */}
@@ -357,10 +382,16 @@ export default function AddProductModal({
                                                 setBinCode(bin.id);
                                                 setBinSearchResults([]);
                                             }}
-                                            className="w-full text-left px-4 py-3 hover:bg-blue-50 transition border-b border-slate-50 last:border-0 flex justify-between items-center group"
+                                            className={clsx(
+                                                "w-full text-left px-4 py-3 transition border-b border-slate-50 last:border-0 flex justify-between items-center group",
+                                                isStockCountMode ? "hover:bg-amber-50" : "hover:bg-blue-50"
+                                            )}
                                         >
                                             <div>
-                                                <span className="font-bold text-slate-700 group-hover:text-blue-700">{bin.id}</span>
+                                                <span className={clsx(
+                                                    "font-bold text-slate-700 transition",
+                                                    isStockCountMode ? "group-hover:text-amber-700" : "group-hover:text-blue-700"
+                                                )}>{bin.id}</span>
                                                 <span className="text-xs text-slate-400 ml-2">Zone {bin.zone}</span>
                                             </div>
                                             {bin.isOccupied ? (
@@ -399,17 +430,24 @@ export default function AddProductModal({
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200/50 hover:bg-blue-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+                        className={clsx(
+                            "w-full py-3.5 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-sm",
+                            isSubmitting
+                                ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                                : isStockCountMode
+                                    ? "bg-amber-600 text-white hover:bg-amber-700 active:scale-95"
+                                    : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
+                        )}
                     >
                         {isSubmitting ? (
                             <>
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                <span className="animate-pulse">กำลังบันทึกข้อมูล...</span>
+                                <span>กำลังบันทึกข้อมูล...</span>
                             </>
                         ) : (
                             <>
-                                <CheckCircle2 className="w-5 h-5" />
-                                บันทึกข้อมูลสินค้าเข้าสต็อก
+                                <Check className="w-5 h-5" />
+                                <span>{isStockCountMode ? 'เพิ่มเข้ารายการนับสต็อก' : 'เพิ่มสินค้าเข้าคลัง'}</span>
                             </>
                         )}
                     </button>

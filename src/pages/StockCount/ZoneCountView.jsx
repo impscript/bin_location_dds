@@ -206,18 +206,18 @@ const ZoneCountView = () => {
                 {Object.keys(groupedItems).length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-slate-500 bg-white rounded-xl shadow-sm border border-slate-200">
                         <PackagePlus className="w-12 h-12 text-slate-300 mb-3" />
-                        <p className="text-lg font-medium text-slate-600">No items found matching criteria</p>
+                        <p className="text-lg font-medium text-slate-600">ไม่พบสินค้าในระบบสำหรับโซนนี้</p>
                         <p className="text-sm text-slate-400 mb-6 text-center max-w-xs">
-                            If you found an item that is not in the system for this zone, you can add it as an unexpected item.
+                            หากคุณพบสินค้านอกเหนือจากรายการที่มีอยู่ สามารถเพิ่มเข้าใบตรวจนับได้ทันที
                         </p>
 
                         {!isCompleted && (
                             <button
                                 onClick={() => setIsAddModalOpen(true)}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium shadow-sm hover:bg-blue-700 active:scale-95 transition"
+                                className="flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-xl font-medium shadow-sm hover:bg-amber-700 active:scale-95 transition"
                             >
                                 <PackagePlus className="w-5 h-5" />
-                                + Add Unexpected Item
+                                + เพิ่มสินค้าที่พบหน้างาน (ไม่ได้อยู่ใน List)
                             </button>
                         )}
                     </div>
