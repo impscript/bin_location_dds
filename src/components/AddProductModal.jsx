@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PackagePlus, X, Search, CheckCircle2, Box, MapPin, Hash, AlertTriangle, PackageOpen } from 'lucide-react';
+import { PackagePlus, X, Search, CheckCircle2, Box, MapPin, Hash, AlertTriangle, PackageOpen, Check } from 'lucide-react';
 import { useWarehouse } from '../context/WarehouseContext';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
@@ -21,6 +21,21 @@ export default function AddProductModal({ isOpen, onClose, initialBinId = '', in
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [existingProduct, setExistingProduct] = useState(null);
 
+    // Dropdown search states
+    const [binSearchResults, setBinSearchResults] = useState([]);
+    const [subGroupSearchResults, setSubGroupSearchResults] = useState([]);
+
+    // Unique sub groups derived from warehouseData
+    const uniqueSubGroups = React.useMemo(() => {
+        const groups = new Set();
+        warehouseData.forEach(bin => {
+            bin.items.forEach(item => {
+                if (item.nsSubGroup) groups.add(item.nsSubGroup);
+            });
+        });
+        return Array.from(groups).sort();
+    }, [warehouseData]);
+
     // Reset when opened
     useEffect(() => {
         if (isOpen) {
@@ -33,6 +48,8 @@ export default function AddProductModal({ isOpen, onClose, initialBinId = '', in
             setQty(1);
             setExistingProduct(null);
             setIsSubmitting(false);
+            setBinSearchResults([]);
+            setSubGroupSearchResults([]);
         }
     }, [isOpen, initialBinId, initialCode]);
 
@@ -64,6 +81,48 @@ export default function AddProductModal({ isOpen, onClose, initialBinId = '', in
             toast.info(`พบสินค้า '${found.name}' ในระบบแล้ว`, { id: 'found-prod-toast' });
         }
     }, [nsCode, warehouseData]);
+
+    // Search for bins
+    useEffect(() => {
+        if (initialBinId || !binCode.trim()) {
+            setBinSearchResults([]);
+            return;
+        }
+
+        const query = binCode.toLowerCase();
+        const exactMatch = warehouseData.find(b => b.id.toLowerCase() === query);
+        if (exactMatch) {
+            // Already selected exactly
+            // setBinSearchResults([]); 
+        }
+
+        const matches = warehouseData
+            .filter(b => b.id.toLowerCase().includes(query))
+            .slice(0, 5);
+
+        setBinSearchResults(matches);
+    }, [binCode, warehouseData, initialBinId]);
+
+    // Search for sub groups
+    useEffect(() => {
+        if (!nsSubGroup.trim()) {
+            setSubGroupSearchResults([]);
+            return;
+        }
+
+        const query = nsSubGroup.toLowerCase();
+        const exactMatch = uniqueSubGroups.find(g => g.toLowerCase() === query);
+        if (exactMatch) {
+            // Already matched exactly
+            // setSubGroupSearchResults([]);
+        }
+
+        const matches = uniqueSubGroups
+            .filter(g => g.toLowerCase().includes(query))
+            .slice(0, 5);
+
+        setSubGroupSearchResults(matches);
+    }, [nsSubGroup, uniqueSubGroups]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -204,7 +263,7 @@ export default function AddProductModal({ isOpen, onClose, initialBinId = '', in
                             />
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 relative">
                             <label className="text-sm font-bold text-slate-700">Sub Group (Group)</label>
                             <input
                                 type="text"
@@ -213,13 +272,31 @@ export default function AddProductModal({ isOpen, onClose, initialBinId = '', in
                                 placeholder="Stationery..."
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition shadow-sm"
                             />
+                            {/* Sub Group Dropdown */}
+                            {subGroupSearchResults.length > 0 && nsSubGroup.length > 0 && subGroupSearchResults[0].toLowerCase() !== nsSubGroup.toLowerCase() && (
+                                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                    {subGroupSearchResults.map(group => (
+                                        <button
+                                            key={group}
+                                            type="button"
+                                            onClick={() => {
+                                                setNsSubGroup(group);
+                                                setSubGroupSearchResults([]);
+                                            }}
+                                            className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition border-b border-slate-50 last:border-0 font-medium text-slate-700"
+                                        >
+                                            {group}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     <hr className="border-slate-100" />
 
                     <div className="grid grid-cols-2 gap-5">
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 relative">
                             <label className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
                                 <MapPin className="w-4 h-4 text-slate-400" /> จัดเก็บที่ (Bin) <span className="text-red-500">*</span>
                             </label>
@@ -237,6 +314,32 @@ export default function AddProductModal({ isOpen, onClose, initialBinId = '', in
                                         : "bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                                 )}
                             />
+                            {/* Bin Code Dropdown */}
+                            {!initialBinId && binSearchResults.length > 0 && binSearchResults[0].id.toLowerCase() !== binCode.toLowerCase() && (
+                                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                    {binSearchResults.map(bin => (
+                                        <button
+                                            key={bin.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setBinCode(bin.id);
+                                                setBinSearchResults([]);
+                                            }}
+                                            className="w-full text-left px-4 py-3 hover:bg-blue-50 transition border-b border-slate-50 last:border-0 flex justify-between items-center group"
+                                        >
+                                            <div>
+                                                <span className="font-bold text-slate-700 group-hover:text-blue-700">{bin.id}</span>
+                                                <span className="text-xs text-slate-400 ml-2">Zone {bin.zone}</span>
+                                            </div>
+                                            {bin.isOccupied ? (
+                                                <span className="text-xs text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">ไม่ว่าง</span>
+                                            ) : (
+                                                <span className="text-xs text-green-500 bg-green-50 px-2 py-0.5 rounded-full">ว่าง</span>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-1.5">
