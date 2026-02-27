@@ -64,12 +64,12 @@ const LAYOUT_PRESETS = {
         pageWidth: '210mm', pageHeight: '148mm', printSize: 'A5',
         cols: 2, rows: 2,
         style: {
-            titleSize: 'text-sm', subTitleSize: 'text-[10px]',
-            qrSize: '150x150', qrImgClass: 'w-16 h-16',
-            binIdSize: 'text-[1.3rem]', padding: 'p-2',
-            footerSize: 'text-[10px]', binNoSize: 'text-[8px]',
-            fullIdSize: 'text-[9px]', headerBorder: 'border-b',
-            labelBorder: 'border-2', footerPy: 'py-0.5', gap: 'gap-2'
+            titleSize: 'text-xs', subTitleSize: 'text-[9px]',
+            qrSize: '200x200', qrImgClass: 'w-24 h-24',
+            binIdSize: 'text-[2rem]', padding: 'p-1.5',
+            footerSize: 'text-[9px]', binNoSize: 'text-[8px]',
+            fullIdSize: 'text-[10px]', headerBorder: 'border-b',
+            labelBorder: 'border-2', footerPy: 'py-0.5', gap: 'gap-1'
         }
     },
     'A4x8': {
@@ -78,12 +78,12 @@ const LAYOUT_PRESETS = {
         pageWidth: '297mm', pageHeight: '210mm', printSize: 'A4',
         cols: 4, rows: 2,
         style: {
-            titleSize: 'text-sm', subTitleSize: 'text-[10px]',
-            qrSize: '150x150', qrImgClass: 'w-16 h-16',
-            binIdSize: 'text-[1.3rem]', padding: 'p-2',
-            footerSize: 'text-[10px]', binNoSize: 'text-[8px]',
-            fullIdSize: 'text-[9px]', headerBorder: 'border-b',
-            labelBorder: 'border-2', footerPy: 'py-0.5', gap: 'gap-2'
+            titleSize: 'text-xs', subTitleSize: 'text-[9px]',
+            qrSize: '180x180', qrImgClass: 'w-20 h-20',
+            binIdSize: 'text-[1.8rem]', padding: 'p-1.5',
+            footerSize: 'text-[9px]', binNoSize: 'text-[8px]',
+            fullIdSize: 'text-[10px]', headerBorder: 'border-b',
+            labelBorder: 'border-2', footerPy: 'py-0.5', gap: 'gap-1'
         }
     }
 };
