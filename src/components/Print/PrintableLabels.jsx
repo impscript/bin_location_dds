@@ -1,40 +1,197 @@
 import React from 'react';
-// import { QRCodeSVG } from 'qrcode.react'; // Need to install or use API?
-// Spec says: "generated using https://api.qrserver.com/v1/create-qr-code/..."
-// So I will use an img tag with that URL.
 
-const PrintableLabels = ({ bins, paperSize = 'A5' }) => {
-    // Styles configuration based on paper size
-    const styles = paperSize === 'A6' ? {
-        width: '148mm',
-        height: '105mm',
-        titleSize: 'text-xl',
-        subTitleSize: 'text-sm',
-        qrSize: '250x250',
-        qrImgClass: 'w-40 h-40',
-        binIdSize: 'text-[3rem]',
-        padding: 'p-4',
-        footerSize: 'text-sm'
-    } : {
-        // A5 Default
-        width: '210mm',
-        height: '148mm',
-        titleSize: 'text-3xl',
-        subTitleSize: 'text-lg',
-        qrSize: '400x400',
-        qrImgClass: 'w-64 h-64',
-        binIdSize: 'text-[4rem]',
-        padding: 'p-6',
-        footerSize: 'text-lg'
-    };
+// Layout presets: defines paper size, grid, and label styling
+const LAYOUT_PRESETS = {
+    'A4': {
+        label: 'A4',
+        desc: '1 label',
+        pageWidth: '297mm', pageHeight: '210mm', printSize: 'A4',
+        cols: 1, rows: 1,
+        style: {
+            titleSize: 'text-4xl', subTitleSize: 'text-xl',
+            qrSize: '500x500', qrImgClass: 'w-80 h-80',
+            binIdSize: 'text-[5rem]', padding: 'p-8',
+            footerSize: 'text-xl', binNoSize: 'text-xs',
+            fullIdSize: 'text-base', headerBorder: 'border-b-4',
+            labelBorder: 'border-4', footerPy: 'py-2', gap: 'gap-4'
+        }
+    },
+    'A5': {
+        label: 'A5',
+        desc: '1 label',
+        pageWidth: '210mm', pageHeight: '148mm', printSize: 'A5',
+        cols: 1, rows: 1,
+        style: {
+            titleSize: 'text-3xl', subTitleSize: 'text-lg',
+            qrSize: '400x400', qrImgClass: 'w-64 h-64',
+            binIdSize: 'text-[4rem]', padding: 'p-6',
+            footerSize: 'text-lg', binNoSize: 'text-xs',
+            fullIdSize: 'text-base', headerBorder: 'border-b-4',
+            labelBorder: 'border-4', footerPy: 'py-2', gap: 'gap-4'
+        }
+    },
+    'A6': {
+        label: 'A6',
+        desc: '1 label',
+        pageWidth: '148mm', pageHeight: '105mm', printSize: 'A6',
+        cols: 1, rows: 1,
+        style: {
+            titleSize: 'text-xl', subTitleSize: 'text-sm',
+            qrSize: '250x250', qrImgClass: 'w-40 h-40',
+            binIdSize: 'text-[3rem]', padding: 'p-4',
+            footerSize: 'text-sm', binNoSize: 'text-[10px]',
+            fullIdSize: 'text-xs', headerBorder: 'border-b-2',
+            labelBorder: 'border-2', footerPy: 'py-1.5', gap: 'gap-3'
+        }
+    },
+    'A7': {
+        label: 'A7',
+        desc: '1 label',
+        pageWidth: '105mm', pageHeight: '74mm', printSize: 'A7',
+        cols: 1, rows: 1,
+        style: {
+            titleSize: 'text-sm', subTitleSize: 'text-[10px]',
+            qrSize: '150x150', qrImgClass: 'w-20 h-20',
+            binIdSize: 'text-[1.5rem]', padding: 'p-2',
+            footerSize: 'text-[10px]', binNoSize: 'text-[8px]',
+            fullIdSize: 'text-[10px]', headerBorder: 'border-b',
+            labelBorder: 'border-2', footerPy: 'py-0.5', gap: 'gap-2'
+        }
+    },
+    'A5x4': {
+        label: 'A5',
+        desc: '4 labels',
+        pageWidth: '210mm', pageHeight: '148mm', printSize: 'A5',
+        cols: 2, rows: 2,
+        style: {
+            titleSize: 'text-sm', subTitleSize: 'text-[10px]',
+            qrSize: '150x150', qrImgClass: 'w-16 h-16',
+            binIdSize: 'text-[1.3rem]', padding: 'p-2',
+            footerSize: 'text-[10px]', binNoSize: 'text-[8px]',
+            fullIdSize: 'text-[9px]', headerBorder: 'border-b',
+            labelBorder: 'border-2', footerPy: 'py-0.5', gap: 'gap-2'
+        }
+    },
+    'A4x8': {
+        label: 'A4',
+        desc: '8 labels',
+        pageWidth: '297mm', pageHeight: '210mm', printSize: 'A4',
+        cols: 4, rows: 2,
+        style: {
+            titleSize: 'text-sm', subTitleSize: 'text-[10px]',
+            qrSize: '150x150', qrImgClass: 'w-16 h-16',
+            binIdSize: 'text-[1.3rem]', padding: 'p-2',
+            footerSize: 'text-[10px]', binNoSize: 'text-[8px]',
+            fullIdSize: 'text-[9px]', headerBorder: 'border-b',
+            labelBorder: 'border-2', footerPy: 'py-0.5', gap: 'gap-2'
+        }
+    }
+};
 
+// Single label component
+const Label = ({ bin, style }) => (
+    <div className={`flex flex-col items-center justify-between ${style.labelBorder} border-black box-border relative bg-white ${style.padding} w-full h-full`}>
+        {/* Header */}
+        <div className={`w-full text-center ${style.headerBorder} border-black pb-0.5`}>
+            <h1 className={`${style.titleSize} font-black uppercase tracking-widest text-slate-900 leading-tight`}>DDS Warehouse</h1>
+            <p className={`${style.subTitleSize} font-bold text-slate-600 leading-tight`}>Location ID</p>
+        </div>
+
+        {/* Content */}
+        <div className={`flex-1 flex flex-row items-center justify-center w-full ${style.gap}`}>
+            <div className="bg-white flex-shrink-0">
+                <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(bin.id)}`}
+                    alt={`QR Code for ${bin.id}`}
+                    className={`${style.qrImgClass} object-contain border border-slate-200`}
+                />
+            </div>
+            <div className="text-center flex-1 min-w-0">
+                <p className={`${style.binNoSize} text-slate-400 font-bold mb-0.5 uppercase tracking-wider`}>BIN NO.</p>
+                <h2 className={`${style.binIdSize} leading-none font-black tracking-tighter text-slate-900 break-words`}>
+                    {bin.id.replace('OB_Non ', '').replace('OB_', '')}
+                </h2>
+                <p className={`font-mono mt-0.5 bg-slate-100 px-1 rounded inline-block text-slate-600 ${style.fullIdSize} break-all`}>
+                    {bin.id}
+                </p>
+            </div>
+        </div>
+
+        {/* Footer */}
+        <div className={`w-full bg-black text-white ${style.footerPy} text-center mt-auto rounded-sm`}>
+            <p className={`${style.footerSize} font-bold uppercase tracking-widest`}>Scan to Update</p>
+        </div>
+    </div>
+);
+
+// Group array into chunks
+const chunkArray = (arr, size) => {
+    const chunks = [];
+    for (let i = 0; i < arr.length; i += size) {
+        chunks.push(arr.slice(i, i + size));
+    }
+    return chunks;
+};
+
+const PrintableLabels = ({ bins, layout = 'A5' }) => {
+    const preset = LAYOUT_PRESETS[layout] || LAYOUT_PRESETS['A5'];
+    const perPage = preset.cols * preset.rows;
+    const isMultiUp = perPage > 1;
+
+    if (isMultiUp) {
+        const pages = chunkArray(bins, perPage);
+        return (
+            <div className="w-full bg-white">
+                <style>
+                    {`
+                        @media print {
+                            @page {
+                                size: ${preset.printSize} landscape;
+                                margin: 0;
+                            }
+                            body {
+                                print-color-adjust: exact;
+                                -webkit-print-color-adjust: exact;
+                            }
+                        }
+                    `}
+                </style>
+                {pages.map((pageBins, pageIdx) => (
+                    <div
+                        key={pageIdx}
+                        className="print-page-break bg-white mx-auto my-8 print:my-0"
+                        style={{
+                            width: preset.pageWidth,
+                            height: preset.pageHeight,
+                            display: 'grid',
+                            gridTemplateColumns: `repeat(${preset.cols}, 1fr)`,
+                            gridTemplateRows: `repeat(${preset.rows}, 1fr)`,
+                            padding: '2mm',
+                            gap: '1mm',
+                            boxSizing: 'border-box'
+                        }}
+                    >
+                        {pageBins.map((bin) => (
+                            <Label key={bin.id} bin={bin} style={preset.style} />
+                        ))}
+                        {/* Empty slots for incomplete pages */}
+                        {Array.from({ length: perPage - pageBins.length }).map((_, i) => (
+                            <div key={`empty-${i}`} className="border border-dashed border-slate-200 rounded" />
+                        ))}
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    // Single label per page
     return (
         <div className="w-full bg-white">
             <style>
                 {`
                     @media print {
                         @page {
-                            size: ${paperSize} landscape;
+                            size: ${preset.printSize} landscape;
                             margin: 0;
                         }
                         body {
@@ -47,43 +204,15 @@ const PrintableLabels = ({ bins, paperSize = 'A5' }) => {
             {bins.map((bin) => (
                 <div
                     key={bin.id}
-                    className={`print-page-break flex flex-col items-center justify-between border-4 border-black box-border relative bg-white ${styles.padding} mx-auto my-8 print:my-0`}
-                    style={{ width: styles.width, height: styles.height }}
+                    className="print-page-break mx-auto my-8 print:my-0"
+                    style={{ width: preset.pageWidth, height: preset.pageHeight }}
                 >
-                    {/* Header */}
-                    <div className="w-full text-center border-b-4 border-black pb-2">
-                        <h1 className={`${styles.titleSize} font-black uppercase tracking-widest text-slate-900`}>DDS Warehouse</h1>
-                        <p className={`${styles.subTitleSize} font-bold text-slate-600`}>Location ID</p>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 flex flex-row items-center justify-center w-full space-x-6">
-                        <div className="bg-white">
-                            <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=${styles.qrSize}&data=${encodeURIComponent(bin.id)}`}
-                                alt={`QR Code for ${bin.id}`}
-                                className={`${styles.qrImgClass} object-contain border-2 border-slate-200`}
-                            />
-                        </div>
-                        <div className="text-center flex-1">
-                            <p className="text-xs text-slate-400 font-bold mb-1 uppercase tracking-wider">BIN NO.</p>
-                            <h2 className={`${styles.binIdSize} leading-none font-black tracking-tighter text-slate-900 break-words`}>
-                                {bin.id.replace('OB_Non ', '').replace('OB_', '')}
-                            </h2>
-                            <p className={`font-mono mt-1 bg-slate-100 px-2 rounded inline-block text-slate-600 ${paperSize === 'A6' ? 'text-xs' : 'text-base'}`}>
-                                {bin.id}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="w-full bg-black text-white py-2 text-center mt-auto rounded-sm">
-                        <p className={`${styles.footerSize} font-bold uppercase tracking-widest`}>Scan to Update</p>
-                    </div>
+                    <Label bin={bin} style={preset.style} />
                 </div>
             ))}
         </div>
     );
 };
 
+export { LAYOUT_PRESETS };
 export default PrintableLabels;
