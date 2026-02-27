@@ -62,33 +62,27 @@ const LAYOUT_PRESETS = {
         label: 'A5',
         desc: '4 labels',
         pageWidth: '210mm', pageHeight: '148mm', printSize: 'A5',
-        cols: 2, rows: 2,
+        cols: 2, rows: 2, multiUp: true,
         style: {
-            titleSize: 'text-xs', subTitleSize: 'text-[9px]',
-            qrSize: '200x200', qrImgClass: 'w-24 h-24',
-            binIdSize: 'text-[2rem]', padding: 'p-1.5',
-            footerSize: 'text-[9px]', binNoSize: 'text-[8px]',
-            fullIdSize: 'text-[10px]', headerBorder: 'border-b',
-            labelBorder: 'border-2', footerPy: 'py-0.5', gap: 'gap-1'
+            qrSize: '200x200',
+            binIdSize: 'text-[1.6rem]',
+            fullIdSize: 'text-[9px]',
         }
     },
     'A4x8': {
         label: 'A4',
         desc: '8 labels',
         pageWidth: '297mm', pageHeight: '210mm', printSize: 'A4',
-        cols: 4, rows: 2,
+        cols: 4, rows: 2, multiUp: true,
         style: {
-            titleSize: 'text-xs', subTitleSize: 'text-[9px]',
-            qrSize: '180x180', qrImgClass: 'w-20 h-20',
-            binIdSize: 'text-[1.8rem]', padding: 'p-1.5',
-            footerSize: 'text-[9px]', binNoSize: 'text-[8px]',
-            fullIdSize: 'text-[10px]', headerBorder: 'border-b',
-            labelBorder: 'border-2', footerPy: 'py-0.5', gap: 'gap-1'
+            qrSize: '200x200',
+            binIdSize: 'text-[1.6rem]',
+            fullIdSize: 'text-[9px]',
         }
     }
 };
 
-// Single label component
+// Single label component (horizontal layout - QR left, text right)
 const Label = ({ bin, style }) => (
     <div className={`flex flex-col items-center justify-between ${style.labelBorder} border-black box-border relative bg-white ${style.padding} w-full h-full`}>
         {/* Header */}
@@ -120,6 +114,33 @@ const Label = ({ bin, style }) => (
         {/* Footer */}
         <div className={`w-full bg-black text-white ${style.footerPy} text-center mt-auto rounded-sm`}>
             <p className={`${style.footerSize} font-bold uppercase tracking-widest`}>Scan to Update</p>
+        </div>
+    </div>
+);
+
+// Multi-up compact label (vertical layout - QR top, text bottom)
+const CompactLabel = ({ bin, style }) => (
+    <div className="flex flex-col items-center justify-between border border-black box-border bg-white w-full h-full overflow-hidden"
+        style={{ padding: '3mm' }}
+    >
+        {/* QR Code - takes up most of the space */}
+        <div className="flex-1 flex items-center justify-center w-full">
+            <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(bin.id)}`}
+                alt={`QR Code for ${bin.id}`}
+                className="object-contain"
+                style={{ width: '90%', maxHeight: '100%', aspectRatio: '1/1' }}
+            />
+        </div>
+
+        {/* BIN Info - compact text area below QR */}
+        <div className="w-full text-center mt-auto" style={{ paddingTop: '1mm' }}>
+            <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900`}>
+                {bin.id.replace('OB_Non ', '').replace('OB_', '')}
+            </h2>
+            <p className={`font-mono ${style.fullIdSize} text-slate-500 mt-0.5`}>
+                {bin.id}
+            </p>
         </div>
     </div>
 );
@@ -166,17 +187,17 @@ const PrintableLabels = ({ bins, layout = 'A5' }) => {
                             display: 'grid',
                             gridTemplateColumns: `repeat(${preset.cols}, 1fr)`,
                             gridTemplateRows: `repeat(${preset.rows}, 1fr)`,
-                            padding: '2mm',
-                            gap: '1mm',
+                            padding: '5mm',
+                            gap: '2mm',
                             boxSizing: 'border-box'
                         }}
                     >
                         {pageBins.map((bin) => (
-                            <Label key={bin.id} bin={bin} style={preset.style} />
+                            <CompactLabel key={bin.id} bin={bin} style={preset.style} />
                         ))}
                         {/* Empty slots for incomplete pages */}
                         {Array.from({ length: perPage - pageBins.length }).map((_, i) => (
-                            <div key={`empty-${i}`} className="border border-dashed border-slate-200 rounded" />
+                            <div key={`empty-${i}`} className="border border-dashed border-slate-300 rounded" />
                         ))}
                     </div>
                 ))}
