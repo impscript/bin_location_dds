@@ -62,7 +62,21 @@ export default function LoginPage() {
         try {
             await loginWithCredentials(username.trim(), password);
         } catch (err) {
-            setError(err.message);
+            // Map technical errors to friendly Thai messages
+            const msg = err.message || '';
+            if (msg.includes('HandshakeFailure') || msg.includes('error sending request') || msg.includes('fetch')) {
+                setError('ไม่สามารถเชื่อมต่อระบบยืนยันตัวตนได้ กรุณาลองใหม่อีกครั้ง');
+            } else if (msg.includes('not found') || msg.includes('ไม่พบ')) {
+                setError('ไม่พบบัญชีผู้ใช้นี้ กรุณาตรวจสอบ Username อีกครั้ง');
+            } else if (msg.includes('password') || msg.includes('รหัสผ่าน')) {
+                setError('รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่');
+            } else if (msg.includes('ลงทะเบียน') || msg.includes('Admin')) {
+                setError(msg);
+            } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+                setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบอินเทอร์เน็ต');
+            } else {
+                setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+            }
         } finally {
             setLoginLoading(false);
         }
@@ -108,7 +122,7 @@ export default function LoginPage() {
                                     type="text"
                                     value={username}
                                     onChange={(e) => { setUsername(e.target.value); setError(''); }}
-                                    placeholder="กรอก Employee ID"
+                                    placeholder="เช่น chatchawan_tu"
                                     autoComplete="username"
                                     className="w-full pl-10 pr-4 py-3 bg-gray-800/80 border border-gray-700/80 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
                                 />
