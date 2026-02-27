@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import md5 from 'js-md5';
 
 const AuthContext = createContext(null);
 
@@ -91,6 +92,44 @@ export function AuthProvider({ children }) {
         localStorage.setItem('dds_user_id', selectedUser.id);
     };
 
+    const loginWithCredentials = async (username, password) => {
+        const passwordMd5 = md5(password);
+
+        // Call IDMS proxy Edge Function
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const res = await fetch(`${supabaseUrl}/functions/v1/idms-auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account: username, password_md5: passwordMd5 }),
+        });
+
+        const data = await res.json();
+
+        if (data.Result !== 'OK') {
+            // Extract meaningful error message from IDMS
+            const msg = data.Result?.replace('Error : ', '') || 'Authentication failed';
+            throw new Error(msg);
+        }
+
+        const empId = data.EmpId;
+
+        // Look up user in DB by emp_id
+        const { data: dbUser, error: dbError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('emp_id', empId)
+            .eq('is_active', true)
+            .single();
+
+        if (dbError || !dbUser) {
+            throw new Error('บัญชีของคุณยังไม่ได้ลงทะเบียนในระบบ กรุณาติดต่อ Admin');
+        }
+
+        setUser(dbUser);
+        localStorage.setItem('dds_user_id', dbUser.id);
+        return dbUser;
+    };
+
     const logout = () => {
         setUser(null);
         localStorage.removeItem('dds_user_id');
@@ -108,6 +147,7 @@ export function AuthProvider({ children }) {
             users,
             loading,
             login,
+            loginWithCredentials,
             logout,
             permissions,
             hasPermission,

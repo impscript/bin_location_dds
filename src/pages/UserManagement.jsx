@@ -19,7 +19,7 @@ const UserManagement = () => {
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
-    const [form, setForm] = useState({ username: '', display_name: '', role: 'warehouse' });
+    const [form, setForm] = useState({ username: '', display_name: '', role: 'warehouse', emp_id: '', emp_name: '', emp_phone: '' });
     const [saving, setSaving] = useState(false);
 
     const fetchUsers = async () => {
@@ -36,13 +36,13 @@ const UserManagement = () => {
 
     const openAdd = () => {
         setEditingUser(null);
-        setForm({ username: '', display_name: '', role: 'warehouse' });
+        setForm({ username: '', display_name: '', role: 'warehouse', emp_id: '', emp_name: '', emp_phone: '' });
         setModalOpen(true);
     };
 
     const openEdit = (u) => {
         setEditingUser(u);
-        setForm({ username: u.username, display_name: u.display_name, role: u.role });
+        setForm({ username: u.username, display_name: u.display_name, role: u.role, emp_id: u.emp_id || '', emp_name: u.emp_name || '', emp_phone: u.emp_phone || '' });
         setModalOpen(true);
     };
 
@@ -56,14 +56,14 @@ const UserManagement = () => {
             if (editingUser) {
                 const { error } = await supabase
                     .from('users')
-                    .update({ username: form.username.trim(), display_name: form.display_name.trim(), role: form.role })
+                    .update({ username: form.username.trim(), display_name: form.display_name.trim(), role: form.role, emp_id: form.emp_id.trim() || null, emp_name: form.emp_name.trim() || null, emp_phone: form.emp_phone.trim() || null })
                     .eq('id', editingUser.id);
                 if (error) throw error;
                 toast.success('อัพเดทผู้ใช้สำเร็จ');
             } else {
                 const { error } = await supabase
                     .from('users')
-                    .insert({ username: form.username.trim(), display_name: form.display_name.trim(), role: form.role });
+                    .insert({ username: form.username.trim(), display_name: form.display_name.trim(), role: form.role, emp_id: form.emp_id.trim() || null, emp_name: form.emp_name.trim() || null, emp_phone: form.emp_phone.trim() || null });
                 if (error) throw error;
                 toast.success('เพิ่มผู้ใช้สำเร็จ');
             }
@@ -137,7 +137,7 @@ const UserManagement = () => {
                                         <h3 className="font-semibold text-slate-800">{u.display_name}</h3>
                                         {!u.is_active && <span className="text-xs px-2 py-0.5 bg-red-100 text-red-600 rounded-full">ปิดใช้งาน</span>}
                                     </div>
-                                    <p className="text-sm text-slate-500">@{u.username}</p>
+                                    <p className="text-sm text-slate-500">@{u.username}{u.emp_id ? ` · EmpID: ${u.emp_id}` : ''}</p>
                                     <span className={clsx("inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full mt-1", cfg.color)}>
                                         <Icon className="w-3 h-3" />
                                         {cfg.label}
@@ -191,6 +191,29 @@ const UserManagement = () => {
                                             {cfg.label}
                                         </button>
                                     ))}
+                                </div>
+                            </div>
+
+                            <div className="border-t border-slate-100 pt-4 mt-1">
+                                <label className="text-sm font-medium text-slate-700 mb-2 block">ข้อมูลพนักงาน (สำหรับ Login)</label>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="text-xs text-slate-500">Employee ID</label>
+                                        <input type="text" value={form.emp_id} onChange={e => setForm(p => ({ ...p, emp_id: e.target.value }))}
+                                            className="w-full mt-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="เช่น 10005208" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs text-slate-500">ชื่อพนักงาน</label>
+                                            <input type="text" value={form.emp_name} onChange={e => setForm(p => ({ ...p, emp_name: e.target.value }))}
+                                                className="w-full mt-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="ชื่อ-นามสกุล" />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-500">เบอร์โทร</label>
+                                            <input type="text" value={form.emp_phone} onChange={e => setForm(p => ({ ...p, emp_phone: e.target.value }))}
+                                                className="w-full mt-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="08x-xxx-xxxx" />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
