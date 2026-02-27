@@ -64,9 +64,9 @@ const LAYOUT_PRESETS = {
         pageWidth: '210mm', pageHeight: '148mm', printSize: 'A5',
         cols: 2, rows: 2, multiUp: true,
         style: {
-            qrSize: '200x200',
-            binIdSize: 'text-[1.6rem]',
-            fullIdSize: 'text-[9px]',
+            qrSize: '250x250',
+            binIdSize: 'text-[2rem]',
+            fullIdSize: 'text-[10px]',
         }
     },
     'A4x8': {
@@ -75,9 +75,9 @@ const LAYOUT_PRESETS = {
         pageWidth: '297mm', pageHeight: '210mm', printSize: 'A4',
         cols: 4, rows: 2, multiUp: true,
         style: {
-            qrSize: '200x200',
-            binIdSize: 'text-[1.6rem]',
-            fullIdSize: 'text-[9px]',
+            qrSize: '250x250',
+            binIdSize: 'text-[1.8rem]',
+            fullIdSize: 'text-[10px]',
         }
     }
 };
@@ -120,25 +120,25 @@ const Label = ({ bin, style }) => (
 
 // Multi-up compact label (vertical layout - QR top, text bottom)
 const CompactLabel = ({ bin, style }) => (
-    <div className="flex flex-col items-center justify-between border border-black box-border bg-white w-full h-full overflow-hidden"
-        style={{ padding: '3mm' }}
+    <div className="flex flex-col items-center border border-black box-border bg-white w-full h-full overflow-hidden"
+        style={{ padding: '2mm' }}
     >
-        {/* QR Code - takes up most of the space */}
-        <div className="flex-1 flex items-center justify-center w-full">
+        {/* QR Code - fills most of the cell */}
+        <div className="flex-1 flex items-center justify-center w-full" style={{ minHeight: 0 }}>
             <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(bin.id)}`}
                 alt={`QR Code for ${bin.id}`}
                 className="object-contain"
-                style={{ width: '90%', maxHeight: '100%', aspectRatio: '1/1' }}
+                style={{ width: '100%', height: '100%' }}
             />
         </div>
 
-        {/* BIN Info - compact text area below QR */}
-        <div className="w-full text-center mt-auto" style={{ paddingTop: '1mm' }}>
+        {/* BIN Info - tight text below QR */}
+        <div className="w-full text-center flex-shrink-0" style={{ paddingTop: '1mm' }}>
             <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900`}>
                 {bin.id.replace('OB_Non ', '').replace('OB_', '')}
             </h2>
-            <p className={`font-mono ${style.fullIdSize} text-slate-500 mt-0.5`}>
+            <p className={`font-mono ${style.fullIdSize} text-slate-500 leading-tight`}>
                 {bin.id}
             </p>
         </div>
@@ -187,8 +187,8 @@ const PrintableLabels = ({ bins, layout = 'A5' }) => {
                             display: 'grid',
                             gridTemplateColumns: `repeat(${preset.cols}, 1fr)`,
                             gridTemplateRows: `repeat(${preset.rows}, 1fr)`,
-                            padding: '5mm',
-                            gap: '2mm',
+                            padding: '3mm',
+                            gap: '1.5mm',
                             boxSizing: 'border-box'
                         }}
                     >
