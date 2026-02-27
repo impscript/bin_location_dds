@@ -3,11 +3,12 @@ import CopyBadge from '../../components/CopyBadge';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowLeft, Check, Save, AlertTriangle, Search, Filter, ScanLine, PackagePlus } from 'lucide-react';
+import { ArrowLeft, Check, Save, AlertTriangle, Search, Filter, ScanLine, PackagePlus, ArrowRightLeft } from 'lucide-react';
 import clsx from 'clsx';
 import { useWarehouse } from '../../context/WarehouseContext';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import AddProductModal from '../../components/AddProductModal';
+import MoveItemModal from '../../components/MoveItemModal';
 
 const ZoneCountView = () => {
     const { id, zoneId } = useParams();
@@ -23,6 +24,8 @@ const ZoneCountView = () => {
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [isCompleted, setIsCompleted] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [transferItem, setTransferItem] = useState(null);
+    const [transferBinCode, setTransferBinCode] = useState(null);
 
     // Ref for search input
     const searchInputRef = React.useRef(null);
@@ -240,6 +243,10 @@ const ZoneCountView = () => {
                                         onSave={handleSave}
                                         isSaving={savingId === item.id}
                                         readOnly={isCompleted}
+                                        onTransfer={(item, binCode) => {
+                                            setTransferItem(item);
+                                            setTransferBinCode(binCode);
+                                        }}
                                     />
                                 ))}
                             </div>
@@ -268,12 +275,31 @@ const ZoneCountView = () => {
                     stockCountZoneId: zoneId
                 }}
             />
+
+            {/* Transfer Modal */}
+            {transferItem && (
+                <MoveItemModal
+                    isOpen={true}
+                    onClose={() => {
+                        setTransferItem(null);
+                        setTransferBinCode(null);
+                        setTimeout(() => window.location.reload(), 300);
+                    }}
+                    item={{
+                        name: transferItem.product?.product_name || 'Unknown',
+                        qty: transferItem.counted_qty ?? transferItem.system_qty,
+                        unit: transferItem.product?.unit || 'EA',
+                        _productId: transferItem.product_id,
+                    }}
+                    currentBinId={transferBinCode}
+                />
+            )}
         </div>
     );
 };
 
 // Extracted Component for Performance & Cleanliness
-const StockItemRow = ({ item, onSave, isSaving, readOnly }) => {
+const StockItemRow = ({ item, onSave, isSaving, readOnly, onTransfer }) => {
     const [val, setVal] = useState(item.counted_qty !== null ? item.counted_qty.toString() : '');
 
     const isDirty = (val !== '') && (item.counted_qty === null || parseInt(val) !== item.counted_qty);
@@ -367,6 +393,15 @@ const StockItemRow = ({ item, onSave, isSaving, readOnly }) => {
                                     <Save className="w-5 h-5" />
                                 )}
                             </button>
+                            {onTransfer && (
+                                <button
+                                    onClick={() => onTransfer(item, item.bin?.bin_code)}
+                                    title="ย้าย BIN"
+                                    className="p-2.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 active:scale-95 transition border border-amber-200"
+                                >
+                                    <ArrowRightLeft className="w-4 h-4" />
+                                </button>
+                            )}
                         </>
                     )}
                 </div>
