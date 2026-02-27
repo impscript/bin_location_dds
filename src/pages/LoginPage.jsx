@@ -113,7 +113,7 @@ export default function LoginPage() {
                     <form onSubmit={handleCredentialLogin} className="space-y-4">
                         {/* Username */}
                         <div>
-                            <label className="text-sm font-medium text-gray-300 mb-1.5 block">Username</label>
+                            <label className="text-sm font-medium text-gray-300 mb-1.5 block">Username (HRMS)</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                     <User className="w-4.5 h-4.5 text-gray-500" />
@@ -131,7 +131,7 @@ export default function LoginPage() {
 
                         {/* Password */}
                         <div>
-                            <label className="text-sm font-medium text-gray-300 mb-1.5 block">Password</label>
+                            <label className="text-sm font-medium text-gray-300 mb-1.5 block">Password (HRMS)</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                     <Lock className="w-4.5 h-4.5 text-gray-500" />
