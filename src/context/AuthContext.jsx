@@ -95,19 +95,37 @@ export function AuthProvider({ children }) {
     const loginWithCredentials = async (username, password) => {
         const passwordMd5 = md5(password);
 
-        // Call IDMS proxy Edge Function
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const res = await fetch(`${supabaseUrl}/functions/v1/idms-auth`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ account: username, password_md5: passwordMd5 }),
-        });
+        const idmsUrl = `https://mobiledev.advanceagro.net/ws/api/idms/authentication/?account=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}&Service=0000&AgentId=SystemMango&AgentCode=Np4kfRh5`;
 
-        const data = await res.json();
+        let data = null;
 
-        if (data.Result !== 'OK') {
-            // Extract meaningful error message from IDMS
-            const msg = data.Result?.replace('Error : ', '') || 'Authentication failed';
+        // Strategy 1: Direct browser call (works when user is on corporate network)
+        try {
+            const res = await fetch(idmsUrl, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+            });
+            data = await res.json();
+        } catch (directErr) {
+            console.warn('Direct IDMS call failed, trying Edge Function proxy...', directErr.message);
+
+            // Strategy 2: Edge Function proxy (works when CORS blocks direct call)
+            try {
+                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+                const res = await fetch(`${supabaseUrl}/functions/v1/idms-auth`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ account: username, password_md5: passwordMd5 }),
+                });
+                data = await res.json();
+            } catch (proxyErr) {
+                console.error('Edge Function proxy also failed:', proxyErr.message);
+                throw new Error('ไม่สามารถเชื่อมต่อระบบยืนยันตัวตนได้');
+            }
+        }
+
+        if (!data || data.Result !== 'OK') {
+            const msg = data?.Result?.replace('Error : ', '') || 'Authentication failed';
             throw new Error(msg);
         }
 
