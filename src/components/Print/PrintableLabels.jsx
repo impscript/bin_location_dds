@@ -131,7 +131,7 @@ const CompactLabel = ({ bin, style }) => (
         </div>
 
         {/* BIN Info - tight text below QR */}
-        <div className="w-full text-center flex-shrink-0" style={{ paddingTop: '3mm' }}>
+        <div className="w-full text-center flex-shrink-0" style={{ paddingTop: '5mm' }}>
             <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900`}>
                 {bin.id}
             </h2>
