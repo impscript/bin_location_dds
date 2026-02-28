@@ -102,12 +102,9 @@ const Label = ({ bin, style }) => (
             </div>
             <div className="text-center flex-1 min-w-0">
                 <p className={`${style.binNoSize} text-slate-400 font-bold mb-0.5 uppercase tracking-wider`}>BIN NO.</p>
-                <h2 className={`${style.binIdSize} leading-none font-black tracking-tighter text-slate-900 break-words`}>
-                    {bin.id.replace('OB_Non ', '').replace('OB_', '')}
-                </h2>
-                <p className={`font-mono mt-0.5 bg-slate-100 px-1 rounded inline-block text-slate-600 ${style.fullIdSize} break-all`}>
+                <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900 break-words`}>
                     {bin.id}
-                </p>
+                </h2>
             </div>
         </div>
 
@@ -136,11 +133,8 @@ const CompactLabel = ({ bin, style }) => (
         {/* BIN Info - tight text below QR */}
         <div className="w-full text-center flex-shrink-0" style={{ paddingTop: '1mm' }}>
             <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900`}>
-                {bin.id.replace('OB_Non ', '').replace('OB_', '')}
-            </h2>
-            <p className={`font-mono ${style.fullIdSize} text-slate-500 leading-tight`}>
                 {bin.id}
-            </p>
+            </h2>
         </div>
     </div>
 );
