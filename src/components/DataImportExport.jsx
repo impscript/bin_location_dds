@@ -13,9 +13,12 @@ const DataImportExport = ({ isOpen, onClose }) => {
     const [isConfirmingClear, setIsConfirmingClear] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
+    const [importProgress, setImportProgress] = useState('');
     const { warehouseData, clearAllData, refreshData } = useWarehouse();
     const { user } = useAuth();
     const fileInputRef = useRef(null);
+
+    const BATCH_SIZE = 200; // rows per RPC call to avoid statement timeout
 
     const handleDownloadTemplate = () => {
         const headers = ["Bin ID", "Product Code", "Product Name", "Unit", "NS Code", "NS Name", "NS SubGroup", "Quantity"];
@@ -201,27 +204,44 @@ const DataImportExport = ({ isOpen, onClose }) => {
                 unit: (row.unit || 'EA').trim(),
             })).filter(r => r.product_code && r.bin_code);
 
-            const { data, error } = await supabase.rpc('upsert_inventory_csv', {
-                p_rows: JSON.stringify(rows),
-                p_user_id: user.id,
-            });
+            // Process in batches to avoid statement timeout
+            const totalBatches = Math.ceil(rows.length / BATCH_SIZE);
+            let totalResult = { products_created: 0, products_updated: 0, bins_created: 0, inventory_updated: 0, errors_count: 0 };
 
-            if (error) throw error;
+            for (let i = 0; i < totalBatches; i++) {
+                const batch = rows.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+                setImportProgress(`batch ${i + 1}/${totalBatches} (${Math.min((i + 1) * BATCH_SIZE, rows.length)}/${rows.length} แถว)`);
 
-            const result = typeof data === 'string' ? JSON.parse(data) : data;
+                const { data, error } = await supabase.rpc('upsert_inventory_csv', {
+                    p_rows: JSON.stringify(batch),
+                    p_user_id: user.id,
+                });
+
+                if (error) throw error;
+
+                const result = typeof data === 'string' ? JSON.parse(data) : data;
+                totalResult.products_created += result.products_created || 0;
+                totalResult.products_updated += result.products_updated || 0;
+                totalResult.bins_created += result.bins_created || 0;
+                totalResult.inventory_updated += result.inventory_updated || 0;
+                totalResult.errors_count += result.errors_count || 0;
+            }
+
             await refreshData();
 
             // Reset and close
             setFile(null);
             setParsedData([]);
             setValidationErrors([]);
+            setImportProgress('');
             onClose();
-            toast.success(`นำเข้าสำเร็จ! ${result.products_created || 0} สินค้าใหม่, ${result.products_updated || 0} อัพเดท, ${result.inventory_updated || 0} inventory`);
+            toast.success(`นำเข้าสำเร็จ! ${totalResult.products_created} สินค้าใหม่, ${totalResult.products_updated} อัพเดท, ${totalResult.inventory_updated} inventory`);
         } catch (err) {
             console.error('Import error:', err);
             toast.error('Import ล้มเหลว: ' + err.message);
         } finally {
             setIsImporting(false);
+            setImportProgress('');
         }
     };
 
@@ -442,7 +462,7 @@ const DataImportExport = ({ isOpen, onClose }) => {
                             disabled={validationErrors.length > 0 || !file || isImporting}
                         >
                             {isImporting && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {isImporting ? `กำลังนำเข้า ${parsedData.length} แถว...` : 'Import Data'}
+                            {isImporting ? `กำลังนำเข้า ${importProgress || '...'}` : 'Import Data'}
                         </button>
                         <button
                             type="button"

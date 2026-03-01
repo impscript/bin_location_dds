@@ -104,6 +104,8 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         }));
     }, [parsedData, columnMap, isMapValid]);
 
+    const BATCH_SIZE = 200;
+
     const handleImport = async () => {
         if (!isMapValid) return;
         setImporting(true);
@@ -121,17 +123,32 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                 unit: (row[columnMap.unit] || 'EA').trim(),
             })).filter(r => r.product_code && r.bin_code);
 
-            const { data, error } = await supabase.rpc('upsert_inventory_csv', {
-                p_rows: JSON.stringify(rows),
-                p_user_id: user.id,
-            });
+            // Process in batches to avoid statement timeout
+            const totalBatches = Math.ceil(rows.length / BATCH_SIZE);
+            let totalResult = { products_created: 0, products_updated: 0, bins_created: 0, inventory_updated: 0, errors_count: 0 };
 
-            if (error) throw error;
+            for (let i = 0; i < totalBatches; i++) {
+                const batch = rows.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+                setImportResult({ progress: `batch ${i + 1}/${totalBatches}`, pct: Math.round(((i + 1) / totalBatches) * 100) });
 
-            const result = typeof data === 'string' ? JSON.parse(data) : data;
-            setImportResult(result);
+                const { data, error } = await supabase.rpc('upsert_inventory_csv', {
+                    p_rows: JSON.stringify(batch),
+                    p_user_id: user.id,
+                });
+
+                if (error) throw error;
+
+                const result = typeof data === 'string' ? JSON.parse(data) : data;
+                totalResult.products_created += result.products_created || 0;
+                totalResult.products_updated += result.products_updated || 0;
+                totalResult.bins_created += result.bins_created || 0;
+                totalResult.inventory_updated += result.inventory_updated || 0;
+                totalResult.errors_count += result.errors_count || 0;
+            }
+
+            setImportResult(totalResult);
             setStep('done');
-            toast.success(`นำเข้าสำเร็จ! ${result.products_created || 0} สินค้าใหม่, ${result.products_updated || 0} อัพเดท`);
+            toast.success(`นำเข้าสำเร็จ! ${totalResult.products_created} สินค้าใหม่, ${totalResult.products_updated} อัพเดท`);
             onSuccess?.();
         } catch (err) {
             console.error('Import error:', err);
@@ -295,6 +312,9 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                         <div className="text-center py-12">
                             <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
                             <p className="text-lg font-medium text-slate-700">กำลังนำเข้า {parsedData.length} แถว...</p>
+                            {importResult?.progress && (
+                                <p className="text-sm text-blue-600 mt-2 font-medium">{importResult.progress} ({importResult.pct}%)</p>
+                            )}
                             <p className="text-sm text-slate-500 mt-1">กรุณารอสักครู่</p>
                         </div>
                     )}
