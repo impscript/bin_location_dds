@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Download, FileText, Check, AlertTriangle, X, Trash2 } from 'lucide-react';
+import { Upload, Download, FileText, Check, AlertTriangle, X, Trash2, Loader2 } from 'lucide-react';
 import { useWarehouse } from '../context/WarehouseContext';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 
 const DataImportExport = ({ isOpen, onClose }) => {
@@ -9,7 +11,10 @@ const DataImportExport = ({ isOpen, onClose }) => {
     const [isValidating, setIsValidating] = useState(false);
     const [validationErrors, setValidationErrors] = useState([]);
     const [isConfirmingClear, setIsConfirmingClear] = useState(false);
-    const { warehouseData, importData, clearAllData } = useWarehouse();
+    const [isClearing, setIsClearing] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
+    const { warehouseData, clearAllData, refreshData } = useWarehouse();
+    const { user } = useAuth();
     const fileInputRef = useRef(null);
 
     const handleDownloadTemplate = () => {
@@ -180,17 +185,44 @@ const DataImportExport = ({ isOpen, onClose }) => {
         }
     };
 
-    const handleConfirmImport = () => {
+    const handleConfirmImport = async () => {
         if (parsedData.length === 0 || validationErrors.length > 0) return;
 
-        importData(parsedData);
+        setIsImporting(true);
+        try {
+            // Map parsed data to the format expected by upsert_inventory_csv
+            const rows = parsedData.map(row => ({
+                product_code: (row.productCode || '').trim(),
+                product_name: (row.productName || '').trim(),
+                ns_code: (row.nsCode || '').trim(),
+                ns_name: (row.nsName || '').trim(),
+                bin_code: (row.binId || '').trim(),
+                qty: parseInt(row.quantity) || 0,
+                unit: (row.unit || 'EA').trim(),
+            })).filter(r => r.product_code && r.bin_code);
 
-        // Reset and close
-        setFile(null);
-        setParsedData([]);
-        setValidationErrors([]);
-        onClose();
-        toast.success("Inventory data imported successfully!");
+            const { data, error } = await supabase.rpc('upsert_inventory_csv', {
+                p_rows: JSON.stringify(rows),
+                p_user_id: user.id,
+            });
+
+            if (error) throw error;
+
+            const result = typeof data === 'string' ? JSON.parse(data) : data;
+            await refreshData();
+
+            // Reset and close
+            setFile(null);
+            setParsedData([]);
+            setValidationErrors([]);
+            onClose();
+            toast.success(`นำเข้าสำเร็จ! ${result.products_created || 0} สินค้าใหม่, ${result.products_updated || 0} อัพเดท, ${result.inventory_updated || 0} inventory`);
+        } catch (err) {
+            console.error('Import error:', err);
+            toast.error('Import ล้มเหลว: ' + err.message);
+        } finally {
+            setIsImporting(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -245,6 +277,7 @@ const DataImportExport = ({ isOpen, onClose }) => {
                                         {!isConfirmingClear ? (
                                             <button
                                                 onClick={() => setIsConfirmingClear(true)}
+                                                disabled={isClearing}
                                                 className="inline-flex justify-center py-2 px-4 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 w-full"
                                             >
                                                 Clear All Data
@@ -252,22 +285,32 @@ const DataImportExport = ({ isOpen, onClose }) => {
                                         ) : (
                                             <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => {
-                                                        clearAllData();
-                                                        setIsConfirmingClear(false);
-                                                        // Optional: Close modal or show success message
-                                                        onClose();
-                                                        toast.success("All inventory data has been cleared.");
+                                                    onClick={async () => {
+                                                        try {
+                                                            setIsClearing(true);
+                                                            await clearAllData();
+                                                            setIsConfirmingClear(false);
+                                                            onClose();
+                                                            toast.success("ล้างข้อมูลทั้งหมดสำเร็จ!");
+                                                        } catch (err) {
+                                                            console.error('Clear data error:', err);
+                                                            toast.error('ล้างข้อมูลล้มเหลว: ' + err.message);
+                                                        } finally {
+                                                            setIsClearing(false);
+                                                        }
                                                     }}
-                                                    className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 w-full"
+                                                    disabled={isClearing}
+                                                    className="inline-flex justify-center items-center gap-2 py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 w-full disabled:opacity-50"
                                                 >
-                                                    Confirm Clear?
+                                                    {isClearing && <Loader2 className="w-4 h-4 animate-spin" />}
+                                                    {isClearing ? 'กำลังล้างข้อมูล...' : 'ยืนยันล้างข้อมูล?'}
                                                 </button>
                                                 <button
                                                     onClick={() => setIsConfirmingClear(false)}
-                                                    className="inline-flex justify-center py-2 px-4 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
+                                                    disabled={isClearing}
+                                                    className="inline-flex justify-center py-2 px-4 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 disabled:opacity-50"
                                                 >
-                                                    Cancel
+                                                    ยกเลิก
                                                 </button>
                                             </div>
                                         )}
@@ -393,12 +436,13 @@ const DataImportExport = ({ isOpen, onClose }) => {
                     <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                         <button
                             type="button"
-                            className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm ${validationErrors.length > 0 || !file ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+                            className={`w-full inline-flex justify-center items-center gap-2 rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm transition-all ${validationErrors.length > 0 || !file || isImporting ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
                                 }`}
                             onClick={handleConfirmImport}
-                            disabled={validationErrors.length > 0 || !file}
+                            disabled={validationErrors.length > 0 || !file || isImporting}
                         >
-                            Import Data
+                            {isImporting && <Loader2 className="w-4 h-4 animate-spin" />}
+                            {isImporting ? `กำลังนำเข้า ${parsedData.length} แถว...` : 'Import Data'}
                         </button>
                         <button
                             type="button"

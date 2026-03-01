@@ -130,8 +130,11 @@ export const WarehouseProvider = ({ children }) => {
         await fetchData(); // Refresh from DB
     };
 
-    const clearAllData = () => {
-        console.log('Clear all data — not supported in Supabase mode');
+    const clearAllData = async () => {
+        const { data, error } = await supabase.rpc('reset_all_inventory_data');
+        if (error) throw error;
+        await fetchData(); // Refresh to reflect empty state
+        return data;
     };
 
     return (
