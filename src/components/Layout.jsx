@@ -86,7 +86,7 @@ const Layout = () => {
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900 print:bg-white pb-16 md:pb-0">
             {/* Navbar */}
             <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm print:hidden">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16 md:h-20 items-center">
 
                         {/* Left: Logo & Title */}
@@ -286,7 +286,7 @@ const Layout = () => {
                 </div>
             </div>
 
-            <main className="max-w-7xl mx-auto py-4 md:py-8 px-4 sm:px-6 lg:px-8 print:p-0 print:w-full print:max-w-none">
+            <main className="max-w-[1600px] mx-auto py-4 md:py-8 px-4 sm:px-6 lg:px-8 print:p-0 print:w-full print:max-w-none">
                 <Outlet />
             </main>
 

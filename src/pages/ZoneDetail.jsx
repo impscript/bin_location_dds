@@ -97,17 +97,17 @@ const ZoneDetail = () => {
             </div>
 
             {/* Shelves Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+            <div className="flex flex-col gap-6">
                 {Object.entries(shelves).map(([shelfName, bins]) => (
                     <div key={shelfName} className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
                         <div className="flex items-center gap-2 mb-6">
                             <LayoutGrid className="h-5 w-5 text-slate-400" />
                             <h3 className="text-lg font-bold text-slate-700">
-                                Shelf {shelfName}
+                                {shelfName && shelfName !== 'undefined' ? `Shelf ${shelfName}` : 'All Bins'}
                             </h3>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
                             {bins.map(bin => {
                                 const isSelected = selectedBins.has(bin.id);
                                 // Design: White card with slight border. Blue accent if occupied?
@@ -121,7 +121,7 @@ const ZoneDetail = () => {
                                             if (printMode) toggleSelection(bin.id);
                                         }}
                                         className={clsx(
-                                            "relative p-4 rounded-lg border transition cursor-pointer select-none bg-slate-50/50 hover:bg-white hover:shadow-md hover:border-blue-200 group",
+                                            "relative p-4 rounded-lg border transition cursor-pointer select-none bg-slate-50/50 hover:bg-white hover:shadow-md hover:border-blue-200 group flex flex-col justify-between h-full",
                                             printMode && isSelected ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50" : "border-slate-200"
                                         )}
                                     >
@@ -129,27 +129,29 @@ const ZoneDetail = () => {
                                             <Link to={`/bin/${encodeURIComponent(bin.id)}`} className="absolute inset-0 z-10" />
                                         ) : null}
 
-                                        {/* Top Row: Bin ID and Sim Badge/Circle */}
-                                        <div className="flex justify-between items-start mb-1 h-8"> {/* Fixed height for alignment */}
-                                            <div className="font-bold text-slate-800 text-sm">{bin.id.replace('OB_Non ', '')}</div> {/* Simplifying display name per mockup? Mockup shows "OB_Non H1-1" though. Logic: Bin ID in mockup matches full ID. */}
-                                        </div>
-
-                                        {/* Middle: Sim Badge */}
-                                        <div className="flex justify-between items-center mb-3">
-                                            <div className="text-xs text-slate-500 font-medium">
-                                                {bin.id}
+                                        <div>
+                                            {/* Top Row: Bin ID */}
+                                            <div className="flex justify-between items-start mb-1 h-8">
+                                                <div className="font-bold text-slate-800 text-sm">{bin.id.replace('OB_Non ', '')}</div>
                                             </div>
-                                            {bin.isSim && (
-                                                <span className="bg-amber-100 text-amber-600 text-[10px] px-1.5 py-0.5 rounded font-bold tracking-wide">Sim</span>
-                                            )}
-                                            {/* Blue corner dot if occupied */}
-                                            {isOccupied && !bin.isSim && ( // Mockup only has dot on some? Actually looks like top right corner indicator.
-                                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                            )}
+
+                                            {/* Middle: Full Bin ID & Sim Badge */}
+                                            <div className="flex justify-between items-center mb-3">
+                                                <div className="text-xs text-slate-500 font-medium break-all pr-2">
+                                                    {bin.id}
+                                                </div>
+                                                {bin.isSim && (
+                                                    <span className="bg-amber-100 text-amber-600 text-[10px] px-1.5 py-0.5 rounded font-bold tracking-wide">Sim</span>
+                                                )}
+                                                {/* Blue corner dot if occupied */}
+                                                {isOccupied && !bin.isSim && (
+                                                    <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* Bottom: SKU Count */}
-                                        <div className="flex justify-between items-end">
+                                        <div className="flex justify-between items-end mt-auto pt-2 border-t border-slate-100/50">
                                             <div className={clsx("text-sm font-semibold", isOccupied ? "text-slate-800" : "text-slate-400")}>
                                                 {isOccupied ? `${bin.items.length} SKUs` : 'Empty'}
                                             </div>
@@ -161,7 +163,7 @@ const ZoneDetail = () => {
                                             )}
                                         </div>
 
-                                        {/* Decorative Blue Corner for Occupied Bins (Mockup Style) */}
+                                        {/* Decorative Blue Corner for Occupied Bins */}
                                         {isOccupied && (
                                             <div className="absolute -top-px -right-px w-3 h-3 bg-blue-500 rounded-bl-lg rounded-tr-md"></div>
                                         )}

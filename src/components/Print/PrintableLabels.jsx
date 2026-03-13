@@ -82,62 +82,143 @@ const LAYOUT_PRESETS = {
     }
 };
 
-// Single label component (horizontal layout - QR left, text right)
-const Label = ({ bin, style }) => (
+// Single label component
+const Label = ({ bin, style, globalLotNo }) => (
     <div className={`flex flex-col items-center justify-between ${style.labelBorder} border-black box-border relative bg-white ${style.padding} w-full h-full`}>
         {/* Header */}
-        <div className={`w-full text-center ${style.headerBorder} border-black pb-0.5`}>
+        <div className={`w-full text-center ${style.headerBorder} border-black pb-0.5 mb-2`}>
             <h1 className={`${style.titleSize} font-black uppercase tracking-widest text-slate-900 leading-tight`}>DDS Warehouse</h1>
-            <p className={`${style.subTitleSize} font-bold text-slate-600 leading-tight`}>Location ID</p>
+            <p className={`${style.subTitleSize} font-bold text-slate-600 leading-tight`}>{globalLotNo ? 'Location & Lot ID' : 'Location ID'}</p>
         </div>
 
         {/* Content */}
-        <div className={`flex-1 flex flex-row items-center justify-center w-full ${style.gap}`}>
-            <div className="bg-white flex-shrink-0">
-                <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(bin.id)}`}
-                    alt={`QR Code for ${bin.id}`}
-                    className={`${style.qrImgClass} object-contain border border-slate-200`}
-                />
+        {globalLotNo ? (
+            <div className="flex-1 flex flex-row items-center justify-between w-full h-full min-h-0 gap-6">
+                {/* Left: Bin */}
+                <div className="flex-1 flex flex-col items-center justify-center h-full min-w-0 w-1/2">
+                    <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(bin.id)}`}
+                        alt={`QR Code for ${bin.id}`}
+                        className={`${style.qrImgClass} object-contain border border-slate-200 mb-4 max-h-[60%]`}
+                    />
+                    <div className="text-center w-full">
+                        <p className={`${style.binNoSize} text-slate-400 font-bold mb-1 uppercase tracking-wider`}>BIN NO.</p>
+                        <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900 truncate px-2`}>
+                            {bin.id}
+                        </h2>
+                    </div>
+                </div>
+
+                {/* Divider */}
+                <div className="h-4/5 w-0.5 bg-slate-200"></div>
+
+                {/* Right: Lot No */}
+                <div className="flex-1 flex flex-col items-center justify-center h-full min-w-0 w-1/2">
+                    <img
+                         src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(globalLotNo)}`}
+                         alt={`QR Code for Lot ${globalLotNo}`}
+                         className={`${style.qrImgClass} object-contain border border-slate-200 mb-4 max-h-[60%]`}
+                    />
+                    <div className="text-center w-full">
+                        <p className={`${style.binNoSize} text-slate-400 font-bold mb-1 uppercase tracking-wider`}>LOT NO.</p>
+                        <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900 truncate px-2`}>
+                            {globalLotNo}
+                        </h2>
+                    </div>
+                </div>
             </div>
-            <div className="text-center flex-1 min-w-0">
-                <p className={`${style.binNoSize} text-slate-400 font-bold mb-0.5 uppercase tracking-wider`}>BIN NO.</p>
-                <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900 break-words`}>
-                    {bin.id}
-                </h2>
+        ) : (
+            <div className={`flex-1 flex flex-row items-center justify-center w-full ${style.gap}`}>
+                <div className="bg-white flex-shrink-0">
+                    <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(bin.id)}`}
+                        alt={`QR Code for ${bin.id}`}
+                        className={`${style.qrImgClass} object-contain border border-slate-200`}
+                    />
+                </div>
+                <div className="text-center flex-1 min-w-0">
+                    <p className={`${style.binNoSize} text-slate-400 font-bold mb-0.5 uppercase tracking-wider`}>BIN NO.</p>
+                    <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900 break-words`}>
+                        {bin.id}
+                    </h2>
+                </div>
             </div>
-        </div>
+        )}
 
         {/* Footer */}
-        <div className={`w-full bg-black text-white ${style.footerPy} text-center mt-auto rounded-sm`}>
+        <div className={`w-full bg-black text-white ${style.footerPy} text-center mt-auto rounded-sm mt-2`}>
             <p className={`${style.footerSize} font-bold uppercase tracking-widest`}>Scan to Update</p>
         </div>
     </div>
 );
 
 // Multi-up compact label (vertical layout - QR top, text bottom)
-const CompactLabel = ({ bin, style }) => (
-    <div className="flex flex-col items-center border border-black box-border bg-white w-full h-full overflow-hidden"
-        style={{ padding: '2mm' }}
-    >
-        {/* QR Code - fills most of the cell */}
-        <div className="flex-1 flex items-center justify-center w-full" style={{ minHeight: 0 }}>
-            <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(bin.id)}`}
-                alt={`QR Code for ${bin.id}`}
-                className="object-contain"
-                style={{ width: '100%', height: '100%' }}
-            />
+const CompactLabel = ({ bin, style, globalLotNo }) => {
+    return (
+        <div className="flex flex-col items-center border border-black box-border bg-white w-full h-full overflow-hidden justify-center"
+            style={{ padding: '2mm' }}
+        >
+            {globalLotNo ? (
+                // Side-by-side layout for Lot No and Bin
+                <div className="flex flex-row w-full h-full gap-2 items-center justify-between">
+                    {/* Left side - Bin */}
+                    <div className="flex flex-col items-center justify-center flex-1 h-full w-1/2 min-w-0">
+                        <div className="flex-1 flex items-center justify-center w-full min-h-0">
+                            <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(bin.id)}`}
+                                alt={`QR Code for ${bin.id}`}
+                                className="object-contain max-h-full"
+                            />
+                        </div>
+                        <div className="w-full text-center flex-shrink-0 mt-2">
+                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-0.5 leading-none">Bin No.</p>
+                            <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900 truncate px-1`}>
+                                {bin.id}
+                            </h2>
+                        </div>
+                    </div>
+                    
+                    {/* Divider */}
+                    <div className="w-px h-full bg-slate-300 mx-1 border-r border-dashed border-slate-400"></div>
+                    
+                    {/* Right side - Lot No */}
+                    <div className="flex flex-col items-center justify-center flex-1 h-full w-1/2 min-w-0">
+                        <div className="flex-1 flex items-center justify-center w-full min-h-0">
+                           <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(globalLotNo)}`}
+                                alt={`QR Code for Lot ${globalLotNo}`}
+                                className="object-contain max-h-full"
+                            />
+                        </div>
+                        <div className="w-full text-center flex-shrink-0 mt-2">
+                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-0.5 leading-none">Lot No.</p>
+                            <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900 truncate px-1`}>
+                                {globalLotNo}
+                            </h2>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                // Original layout
+                <>
+                    <div className="flex-1 flex items-center justify-center w-full" style={{ minHeight: 0 }}>
+                        <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(bin.id)}`}
+                            alt={`QR Code for ${bin.id}`}
+                            className="object-contain"
+                            style={{ width: '100%', height: '100%' }}
+                        />
+                    </div>
+                    <div className="w-full text-center flex-shrink-0" style={{ paddingTop: '5mm' }}>
+                        <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900`}>
+                            {bin.id}
+                        </h2>
+                    </div>
+                </>
+            )}
         </div>
-
-        {/* BIN Info - tight text below QR */}
-        <div className="w-full text-center flex-shrink-0" style={{ paddingTop: '5mm' }}>
-            <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900`}>
-                {bin.id}
-            </h2>
-        </div>
-    </div>
-);
+    );
+};
 
 // Group array into chunks
 const chunkArray = (arr, size) => {
@@ -148,7 +229,7 @@ const chunkArray = (arr, size) => {
     return chunks;
 };
 
-const PrintableLabels = ({ bins, layout = 'A5' }) => {
+const PrintableLabels = ({ bins, layout = 'A5', globalLotNo = '' }) => {
     const preset = LAYOUT_PRESETS[layout] || LAYOUT_PRESETS['A5'];
     const perPage = preset.cols * preset.rows;
     const isMultiUp = perPage > 1;
@@ -187,7 +268,7 @@ const PrintableLabels = ({ bins, layout = 'A5' }) => {
                         }}
                     >
                         {pageBins.map((bin) => (
-                            <CompactLabel key={bin.id} bin={bin} style={preset.style} />
+                            <CompactLabel key={bin.id} bin={bin} style={preset.style} globalLotNo={globalLotNo} />
                         ))}
                         {/* Empty slots for incomplete pages */}
                         {Array.from({ length: perPage - pageBins.length }).map((_, i) => (

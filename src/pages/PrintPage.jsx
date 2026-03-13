@@ -8,7 +8,8 @@ const PrintPage = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { warehouseData, loading } = useWarehouse();
-    const [layout, setLayout] = React.useState('A5');
+    const [layout, setLayout] = React.useState('A5x4');
+    const [globalLotNo, setGlobalLotNo] = React.useState('');
 
     const binIds = searchParams.get('bins')?.split(',') || [];
     const binsToPrint = warehouseData.filter(b => binIds.includes(b.id));
@@ -34,7 +35,7 @@ const PrintPage = () => {
     return (
         <div className="min-h-screen bg-slate-100 print:bg-white">
             {/* Toolbar - Hidden on Print */}
-            <div className="bg-white shadow-sm border-b border-slate-200 p-4 print:hidden flex justify-between items-center sticky top-0 z-10">
+            <div className="bg-white shadow-sm border-b border-slate-200 p-4 print:hidden flex justify-between items-center sticky top-0 z-10 flex-wrap gap-4">
                 <div className="flex items-center gap-4">
                     <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full">
                         <ArrowLeft className="h-6 w-6 text-slate-600" />
@@ -47,7 +48,18 @@ const PrintPage = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap justify-end">
+                    {/* Lot No Input */}
+                    <div className="flex flex-col">
+                        <input
+                            type="text"
+                            placeholder="ระบุ Lot No. (ถ้ามี)"
+                            value={globalLotNo}
+                            onChange={(e) => setGlobalLotNo(e.target.value)}
+                            className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm w-48 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
+                        />
+                    </div>
+
                     {/* Single label sizes */}
                     <div className="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200">
                         {singleLayouts.map(key => (
@@ -90,7 +102,7 @@ const PrintPage = () => {
 
             {/* Print Content */}
             <div className="flex justify-center my-8 print:my-0 print:block">
-                <PrintableLabels bins={binsToPrint} layout={layout} />
+                <PrintableLabels bins={binsToPrint} layout={layout} globalLotNo={globalLotNo} />
             </div>
         </div>
     );
