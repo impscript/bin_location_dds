@@ -2,12 +2,16 @@
 DROP FUNCTION IF EXISTS public.upsert_inventory_csv(text, uuid);
 DROP FUNCTION IF EXISTS public.upsert_inventory_csv(jsonb, uuid);
 
--- Recreate with auto-create bins/zones and correct column names
+-- Recreate with auto-create bins + smart zone parsing from bin_code
 -- Schema reference:
 --   bins: id, bin_code, zone_id, shelf, level, is_active, created_at
---   products: id, product_code, product_name, unit, ns_code, ns_name, ns_sub_group, is_active, created_at, updated_at
+--   products: id, product_code, product_name, unit, ns_code, ns_name, ns_sub_group
 --   inventory: id, product_id, bin_id, qty, updated_at, updated_by, lot_no
---   inventory_logs: id, product_id, bin_id_from, bin_id_to, action, qty_before, qty_after, performed_by, created_at, notes, lot_no
+--   inventory_logs: id, product_id, bin_id_from, bin_id_to, action, qty_before, qty_after, performed_by, notes, lot_no
+--
+-- Zone parsing: "OB_Non A1-1" -> zone "A", shelf "A1-1"
+--               "Premium B2-3" -> zone "B", shelf "B2-3"
+--               Splits by space, takes last part, first letter = zone name
 
 CREATE OR REPLACE FUNCTION public.upsert_inventory_csv(p_rows jsonb, p_user_id uuid)
  RETURNS jsonb
@@ -23,6 +27,8 @@ DECLARE
     v_new_qty integer;
     v_lot_no text;
     v_bin_code text;
+    v_zone_name text;
+    v_parts text[];
     
     result jsonb := '{
         "products_created": 0,
@@ -32,13 +38,6 @@ DECLARE
         "errors_count": 0
     }'::jsonb;
 BEGIN
-    -- Ensure a default zone exists for auto-created bins
-    SELECT id INTO v_zone_id FROM zones WHERE name = 'Imported' LIMIT 1;
-    IF v_zone_id IS NULL THEN
-        INSERT INTO zones (name, type, sort_order) VALUES ('Imported', 'standard', 99)
-        RETURNING id INTO v_zone_id;
-    END IF;
-
     FOR row_data IN SELECT * FROM jsonb_array_elements(p_rows)
     LOOP
         BEGIN
@@ -68,14 +67,32 @@ BEGIN
                 result := jsonb_set(result, '{products_updated}', (COALESCE((result->>'products_updated')::int, 0) + 1)::text::jsonb);
             END IF;
 
-            -- 2. Upsert Bin (auto-create under "Imported" zone if not exists)
+            -- 2. Upsert Bin (auto-create if not exists, parse zone from bin_code)
             v_bin_code := TRIM(row_data->>'bin_code');
             IF v_bin_code IS NOT NULL AND v_bin_code != '' THEN
                 SELECT id INTO v_bin_id FROM bins WHERE bin_code = v_bin_code;
                 
                 IF v_bin_id IS NULL THEN
-                    INSERT INTO bins (bin_code, zone_id)
-                    VALUES (v_bin_code, v_zone_id)
+                    -- Parse zone from bin_code: "OB_Non A1-1" -> split by space -> last part "A1-1" -> first letter "A"
+                    v_parts := string_to_array(v_bin_code, ' ');
+                    IF array_length(v_parts, 1) > 1 THEN
+                        v_zone_name := LEFT(v_parts[array_length(v_parts, 1)], 1);
+                    ELSE
+                        v_zone_name := LEFT(v_bin_code, 1);
+                    END IF;
+                    v_zone_name := UPPER(v_zone_name);
+                    
+                    -- Find or create the zone
+                    SELECT id INTO v_zone_id FROM zones WHERE UPPER(name) = v_zone_name LIMIT 1;
+                    IF v_zone_id IS NULL THEN
+                        INSERT INTO zones (name, type, sort_order) 
+                        VALUES (v_zone_name, 'standard', ASCII(v_zone_name) - 64)
+                        RETURNING id INTO v_zone_id;
+                    END IF;
+                    
+                    -- Create bin with shelf = last part of bin_code
+                    INSERT INTO bins (bin_code, zone_id, shelf)
+                    VALUES (v_bin_code, v_zone_id, v_parts[array_length(v_parts, 1)])
                     RETURNING id INTO v_bin_id;
                     
                     result := jsonb_set(result, '{bins_created}', (COALESCE((result->>'bins_created')::int, 0) + 1)::text::jsonb);
