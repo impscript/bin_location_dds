@@ -87,10 +87,10 @@ BEGIN
                     VALUES (v_product_id, v_bin_id, v_lot_no, v_new_qty);
                     
                     -- Record transaction
-                    INSERT INTO inventory_transactions (
-                        product_id, bin_id, lot_no, transaction_type, quantity, reference_type, created_by
+                    INSERT INTO inventory_logs (
+                        product_id, action, from_bin_id, to_bin_id, qty_change, lot_no, created_by
                     ) VALUES (
-                        v_product_id, v_bin_id, v_lot_no, 'IN', v_new_qty, 'IMPORT', p_user_id
+                        v_product_id, 'import', NULL, v_bin_id, v_new_qty, v_lot_no, p_user_id
                     );
                 ELSIF v_current_qty != v_new_qty THEN
                     -- Update existing inventory record
@@ -103,13 +103,11 @@ BEGIN
                     END IF;
                     
                     -- Record transaction for the difference
-                    INSERT INTO inventory_transactions (
-                        product_id, bin_id, lot_no, transaction_type, quantity, reference_type, created_by
+                    INSERT INTO inventory_logs (
+                        product_id, action, from_bin_id, to_bin_id, qty_change, lot_no, created_by
                     ) VALUES (
-                        v_product_id, v_bin_id, v_lot_no, 
-                        CASE WHEN v_new_qty > v_current_qty THEN 'IN' ELSE 'OUT' END, 
-                        ABS(v_new_qty - v_current_qty), 
-                        'IMPORT_ADJUSTMENT', p_user_id
+                        v_product_id, 'adjust', NULL, v_bin_id, 
+                        (v_new_qty - v_current_qty), v_lot_no, p_user_id
                     );
                 END IF;
                 
