@@ -1,7 +1,8 @@
--- Drop the existing function
+-- Fix ambiguous function definitions by dropping both potential signatures
+DROP FUNCTION IF EXISTS public.upsert_inventory_csv(text, uuid);
 DROP FUNCTION IF EXISTS public.upsert_inventory_csv(jsonb, uuid);
 
--- Create the updated function with lot_no support
+-- Recreate the correct JSONB version
 CREATE OR REPLACE FUNCTION public.upsert_inventory_csv(p_rows jsonb, p_user_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -124,4 +125,4 @@ BEGIN
 
     RETURN result;
 END;
-$function$
+$function$;
