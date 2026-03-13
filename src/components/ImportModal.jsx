@@ -23,6 +23,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         ns_code: '',
         ns_name: '',
         bin_code: '',
+        lot_no: '',
         qty: '',
         unit: '',
     });
@@ -34,6 +35,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         ns_code: 'NS Code',
         ns_name: 'NS Name',
         bin_code: 'Bin Code *',
+        lot_no: 'Lot No',
         qty: 'Quantity *',
         unit: 'Unit',
     };
@@ -58,6 +60,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                     ns_code: ['ns_code', 'nscode', 'netsuite_code', 'ns code'],
                     ns_name: ['ns_name', 'nsname', 'netsuite_name', 'ns name'],
                     bin_code: ['bin_code', 'bincode', 'bin', 'location', 'รหัสbin', 'shelf'],
+                    lot_no: ['lot_no', 'lotno', 'lot', 'batch'],
                     qty: ['qty', 'quantity', 'จำนวน', 'stock', 'amount', 'on_hand'],
                     unit: ['unit', 'uom', 'หน่วย'],
                 };
@@ -99,6 +102,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
             ns_code: row[columnMap.ns_code] || '',
             ns_name: row[columnMap.ns_name] || '',
             bin_code: row[columnMap.bin_code] || '',
+            lot_no: row[columnMap.lot_no] || '',
             qty: row[columnMap.qty] || '0',
             unit: row[columnMap.unit] || 'EA',
         }));
@@ -119,6 +123,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                 ns_code: (row[columnMap.ns_code] || '').trim(),
                 ns_name: (row[columnMap.ns_name] || '').trim(),
                 bin_code: (row[columnMap.bin_code] || '').trim(),
+                lot_no: (row[columnMap.lot_no] || '').trim(),
                 qty: parseInt(row[columnMap.qty]) || 0,
                 unit: (row[columnMap.unit] || 'EA').trim(),
             })).filter(r => r.product_code && r.bin_code);

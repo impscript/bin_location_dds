@@ -21,10 +21,10 @@ const DataImportExport = ({ isOpen, onClose }) => {
     const BATCH_SIZE = 200; // rows per RPC call to avoid statement timeout
 
     const handleDownloadTemplate = () => {
-        const headers = ["Bin ID", "Product Code", "Product Name", "Unit", "NS Code", "NS Name", "NS SubGroup", "Quantity"];
+        const headers = ["Bin ID", "Lot No", "Product Code", "Product Name", "Unit", "NS Code", "NS Name", "NS SubGroup", "Quantity"];
         const sampleData = [
-            ["OB_Non A1-1", "P001", "Sample Product", "PCS", "NS-001", "NS Product Name", "Stationery", "100"],
-            ["OB_Non A1-2", "P002", "Another Product", "BOX", "NS-002", "NS Another Name", "General", "50"]
+            ["OB_Non A1-1", "LOT202310A", "P001", "Sample Product", "PCS", "NS-001", "NS Product Name", "Stationery", "100"],
+            ["OB_Non A1-2", "LOT202310B", "P002", "Another Product", "BOX", "NS-002", "NS Another Name", "General", "50"]
         ];
 
         const csvContent = [
@@ -60,7 +60,7 @@ const DataImportExport = ({ isOpen, onClose }) => {
                 const headers = lines[0].split(',').map(h => h.trim());
 
                 // Validate Headers
-                const requiredHeaders = ["Bin ID", "Product Code", "Product Name", "Unit", "NS Code", "NS Name", "NS SubGroup", "Quantity"];
+                const requiredHeaders = ["Bin ID", "Lot No", "Product Code", "Product Name", "Unit", "NS Code", "NS Name", "NS SubGroup", "Quantity"];
                 const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
 
                 if (missingHeaders.length > 0) {
@@ -71,15 +71,6 @@ const DataImportExport = ({ isOpen, onClose }) => {
 
                 const parsedData = [];
                 const errors = [];
-
-                // Helper to safely split CSV line considering simple quotes (basic implementation)
-                // For robust parsing, a library like PapaParse is recommended, but we stick to simple logic here
-                // if the user's data doesn't have complex quoted commas.
-                // Given the template content, we might have commas in names? 
-                // Let's use a regex split or just standard split if no quotes expected.
-                // The template has "Product Name" like 'QUALITY BLUE 70G. A4(500)6L 480 R/P BOX' - no commas.
-                // But wait, line 145: "ซองน้ำตาล บอสตัน 6""x12"" (10:P)" -> Quotes!
-                // We need a better parser or a robust regex.
 
                 // Simple regex for CSV parsing
                 const parseCSVLine = (str) => {
@@ -130,6 +121,7 @@ const DataImportExport = ({ isOpen, onClose }) => {
                     if (!binError) {
                         parsedData.push({
                             binId: cleanBinId,
+                            lotNo: rowData["Lot No"],
                             productCode: rowData["Product Code"],
                             productName: rowData["Product Name"],
                             unit: rowData["Unit"],
@@ -200,6 +192,7 @@ const DataImportExport = ({ isOpen, onClose }) => {
                 ns_code: (row.nsCode || '').trim(),
                 ns_name: (row.nsName || '').trim(),
                 bin_code: (row.binId || '').trim(),
+                lot_no: (row.lotNo || '').trim(), // Added Lot No mapping
                 qty: parseInt(row.quantity) || 0,
                 unit: (row.unit || 'EA').trim(),
             })).filter(r => r.product_code && r.bin_code);
@@ -413,9 +406,10 @@ const DataImportExport = ({ isOpen, onClose }) => {
                                             <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
                                                 <div className="max-h-60 overflow-y-auto">
                                                     <table className="min-w-full divide-y divide-gray-300">
-                                                        <thead className="bg-gray-50 sticky top-0">
+                                                        <thead className="bg-gray-50 sticky top-0 md:bg-gray-50 bg-white">
                                                             <tr>
                                                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bin ID</th>
+                                                                <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lot No</th>
                                                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
                                                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
                                                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
@@ -429,6 +423,7 @@ const DataImportExport = ({ isOpen, onClose }) => {
                                                             {parsedData.slice(0, 100).map((row, idx) => (
                                                                 <tr key={idx}>
                                                                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">{row.binId}</td>
+                                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{row.lotNo}</td>
                                                                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{row.productCode}</td>
                                                                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate" title={row.productName}>{row.productName}</td>
                                                                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{row.unit}</td>
