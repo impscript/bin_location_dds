@@ -137,7 +137,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                 setImportResult({ progress: `batch ${i + 1}/${totalBatches}`, pct: Math.round(((i + 1) / totalBatches) * 100) });
 
                 const { data, error } = await supabase.rpc('upsert_inventory_csv', {
-                    p_rows: JSON.stringify(batch),
+                    p_rows: batch,
                     p_user_id: user.id,
                 });
 

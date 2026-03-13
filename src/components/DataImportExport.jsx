@@ -206,7 +206,7 @@ const DataImportExport = ({ isOpen, onClose }) => {
                 setImportProgress(`batch ${i + 1}/${totalBatches} (${Math.min((i + 1) * BATCH_SIZE, rows.length)}/${rows.length} แถว)`);
 
                 const { data, error } = await supabase.rpc('upsert_inventory_csv', {
-                    p_rows: JSON.stringify(batch),
+                    p_rows: batch,
                     p_user_id: user.id,
                 });
 
