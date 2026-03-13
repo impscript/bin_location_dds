@@ -103,7 +103,7 @@ const Label = ({ bin, style, globalLotNo }) => (
                     />
                     <div className="text-center w-full">
                         <p className={`${style.binNoSize} text-slate-400 font-bold mb-1 uppercase tracking-wider`}>BIN NO.</p>
-                        <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900 truncate px-2`}>
+                        <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-2 line-clamp-2 ${bin.id.length > 15 ? 'text-3xl' : style.binIdSize}`}>
                             {bin.id}
                         </h2>
                     </div>
@@ -121,7 +121,7 @@ const Label = ({ bin, style, globalLotNo }) => (
                     />
                     <div className="text-center w-full">
                         <p className={`${style.binNoSize} text-slate-400 font-bold mb-1 uppercase tracking-wider`}>LOT NO.</p>
-                        <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900 truncate px-2`}>
+                        <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-2 line-clamp-2 ${(globalLotNo?.length || 0) > 15 ? 'text-3xl' : style.binIdSize}`}>
                             {globalLotNo}
                         </h2>
                     </div>
@@ -138,7 +138,7 @@ const Label = ({ bin, style, globalLotNo }) => (
                 </div>
                 <div className="text-center flex-1 min-w-0">
                     <p className={`${style.binNoSize} text-slate-400 font-bold mb-0.5 uppercase tracking-wider`}>BIN NO.</p>
-                    <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900 break-words`}>
+                    <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-2 line-clamp-2 ${bin.id.length > 15 ? 'text-4xl' : style.binIdSize}`}>
                         {bin.id}
                     </h2>
                 </div>
@@ -172,7 +172,7 @@ const CompactLabel = ({ bin, style, globalLotNo }) => {
                         </div>
                         <div className="w-full text-center flex-shrink-0 mt-2">
                             <p className="text-[10px] text-slate-500 font-bold uppercase mb-0.5 leading-none">Bin No.</p>
-                            <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900 truncate px-1`}>
+                            <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-1 line-clamp-2 ${bin.id.length > 15 ? 'text-xl' : bin.id.length > 10 ? 'text-2xl' : style.binIdSize}`}>
                                 {bin.id}
                             </h2>
                         </div>
@@ -192,7 +192,7 @@ const CompactLabel = ({ bin, style, globalLotNo }) => {
                         </div>
                         <div className="w-full text-center flex-shrink-0 mt-2">
                             <p className="text-[10px] text-slate-500 font-bold uppercase mb-0.5 leading-none">Lot No.</p>
-                            <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900 truncate px-1`}>
+                            <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-1 line-clamp-2 ${(globalLotNo?.length || 0) > 15 ? 'text-xl' : (globalLotNo?.length || 0) > 10 ? 'text-2xl' : style.binIdSize}`}>
                                 {globalLotNo}
                             </h2>
                         </div>
@@ -210,7 +210,7 @@ const CompactLabel = ({ bin, style, globalLotNo }) => {
                         />
                     </div>
                     <div className="w-full text-center flex-shrink-0" style={{ paddingTop: '5mm' }}>
-                        <h2 className={`${style.binIdSize} leading-none font-black tracking-tight text-slate-900`}>
+                        <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-1 line-clamp-2 ${bin.id.length > 15 ? 'text-xl' : bin.id.length > 10 ? 'text-2xl' : style.binIdSize}`}>
                             {bin.id}
                         </h2>
                     </div>
