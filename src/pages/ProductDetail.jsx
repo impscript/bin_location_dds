@@ -154,6 +154,7 @@ const ProductDetail = () => {
                             <tr>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Bin Location</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Zone</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Lot No</th>
                                 <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Quantity</th>
                                 <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -174,6 +175,11 @@ const ProductDetail = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200">
                                             Zone {loc.zone}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className="text-sm font-medium text-slate-900 border px-2 py-1 bg-slate-50 rounded-md">
+                                            {loc.lotNo || '-'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right">

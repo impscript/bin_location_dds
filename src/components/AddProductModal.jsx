@@ -23,6 +23,7 @@ export default function AddProductModal({
     const [unit, setUnit] = useState('EA');
     const [nsSubGroup, setNsSubGroup] = useState('');
     const [binCode, setBinCode] = useState(initialBinId);
+    const [lotNo, setLotNo] = useState('');
     const [qty, setQty] = useState(1);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,6 +53,7 @@ export default function AddProductModal({
             setUnit('EA');
             setNsSubGroup('');
             setBinCode(initialBinId);
+            setLotNo('');
             setQty(1);
             setExistingProduct(null);
             setIsSubmitting(false);
@@ -163,6 +165,7 @@ export default function AddProductModal({
                     productData,
                     targetBin._binUuid,
                     qty,
+                    lotNo,
                     user.id
                 );
                 toast.success(
@@ -172,7 +175,7 @@ export default function AddProductModal({
                     </div>
                 );
             } else {
-                await addInventoryRecord(productData, targetBin._binUuid, qty, user.id);
+                await addInventoryRecord(productData, targetBin._binUuid, qty, lotNo, user.id);
                 toast.success(
                     <div className="flex flex-col">
                         <span className="font-bold">เพิ่มสินค้าเข้าคลังสำเร็จ!</span>
@@ -345,6 +348,20 @@ export default function AddProductModal({
                                     ))}
                                 </div>
                             )}
+                        </div>
+                        
+                        <div className="space-y-1.5 relative">
+                            <label className="text-sm font-bold text-slate-700">Lot No. (Batch)</label>
+                            <input
+                                type="text"
+                                value={lotNo}
+                                onChange={(e) => setLotNo(e.target.value)}
+                                placeholder="เช่น L3B-2DS..."
+                                className={clsx(
+                                    "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition shadow-sm uppercase",
+                                    isStockCountMode ? "focus:ring-amber-500/30 focus:border-amber-500" : "focus:ring-blue-500/30 focus:border-blue-500"
+                                )}
+                            />
                         </div>
                     </div>
 

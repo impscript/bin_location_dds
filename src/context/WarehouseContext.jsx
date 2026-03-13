@@ -75,6 +75,7 @@ export const WarehouseProvider = ({ children }) => {
                     nsSubGroup: inv.products?.ns_sub_group || '',
                     bin: bin.bin_code,
                     qty: inv.qty,
+                    lotNo: inv.lot_no,
                     isDummy: false,
                     _inventoryId: inv.id,
                     _productId: inv.product_id,
@@ -158,7 +159,8 @@ export const WarehouseProvider = ({ children }) => {
                                 binId: bin.id,
                                 zone: bin.zone,
                                 qty: item.qty,
-                                binUuid: bin._binUuid
+                                binUuid: bin._binUuid,
+                                lotNo: item.lotNo
                             });
                         }
                     });
@@ -195,7 +197,7 @@ export const WarehouseProvider = ({ children }) => {
                 if (error) throw error;
                 await fetchData(); // Refresh data
             },
-            addInventoryRecord: async (productData, binId, qty, userId) => {
+            addInventoryRecord: async (productData, binId, qty, lotNo, userId) => {
                 const { error } = await supabase.rpc('add_product_to_inventory', {
                     p_ns_code: productData.ns_code,
                     p_product_code: productData.product_code,
@@ -204,12 +206,13 @@ export const WarehouseProvider = ({ children }) => {
                     p_ns_sub_group: productData.ns_sub_group,
                     p_bin_id: binId,
                     p_qty: parseInt(qty),
+                    p_lot_no: lotNo || null,
                     p_user_id: userId
                 });
                 if (error) throw error;
                 await fetchData();
             },
-            addUnexpectedCountItem: async (stockCountId, stockCountZoneId, productData, binId, qty, userId) => {
+            addUnexpectedCountItem: async (stockCountId, stockCountZoneId, productData, binId, qty, lotNo, userId) => {
                 const { error } = await supabase.rpc('add_unexpected_count_item', {
                     p_stock_count_id: stockCountId,
                     p_stock_count_zone_id: stockCountZoneId,
@@ -220,6 +223,7 @@ export const WarehouseProvider = ({ children }) => {
                     p_unit: productData.unit,
                     p_ns_sub_group: productData.ns_sub_group,
                     p_qty: parseInt(qty),
+                    p_lot_no: lotNo || null,
                     p_user_id: userId
                 });
                 if (error) throw error;
