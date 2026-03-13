@@ -1,4 +1,13 @@
--- Update add_product_to_inventory to support p_lot_no
+-- ============================================================
+-- Update RPCs to support p_lot_no
+-- Matches actual schema:
+--   bins: bin_code (not code)
+--   inventory: qty (not quantity)
+--   inventory_logs: bin_id_from, bin_id_to, qty_before, qty_after, performed_by
+--   products: no created_by column
+-- ============================================================
+
+-- Update add_product_to_inventory
 CREATE OR REPLACE FUNCTION add_product_to_inventory(
     p_ns_code text,
     p_product_code text,
@@ -13,6 +22,7 @@ CREATE OR REPLACE FUNCTION add_product_to_inventory(
 DECLARE
     v_product_id uuid;
     v_inventory_id uuid;
+    v_old_qty integer;
 BEGIN
     -- 1. Get or create product
     SELECT id INTO v_product_id FROM products 
@@ -26,8 +36,8 @@ BEGIN
         RETURNING id INTO v_product_id;
     END IF;
 
-    -- 2. Update/Insert Inventory
-    SELECT id INTO v_inventory_id FROM inventory 
+    -- 2. Update/Insert Inventory (uses qty, not quantity)
+    SELECT id, qty INTO v_inventory_id, v_old_qty FROM inventory 
     WHERE product_id = v_product_id 
       AND bin_id = p_bin_id 
       AND (COALESCE(lot_no, '') = COALESCE(p_lot_no, ''))
@@ -38,19 +48,20 @@ BEGIN
         SET qty = COALESCE(qty, 0) + p_qty, updated_at = NOW()
         WHERE id = v_inventory_id;
     ELSE
+        v_old_qty := 0;
         INSERT INTO inventory (product_id, bin_id, lot_no, qty)
         VALUES (v_product_id, p_bin_id, p_lot_no, p_qty);
     END IF;
 
-    -- 3. Log transaction
-    INSERT INTO inventory_logs (product_id, action, from_bin_id, to_bin_id, qty_change, lot_no, created_by)
-    VALUES (v_product_id, 'adjust', NULL, p_bin_id, p_qty, p_lot_no, p_user_id);
+    -- 3. Log (uses bin_id_from, bin_id_to, qty_before, qty_after, performed_by)
+    INSERT INTO inventory_logs (product_id, action, bin_id_from, bin_id_to, qty_before, qty_after, lot_no, performed_by, notes)
+    VALUES (v_product_id, 'adjust', NULL, p_bin_id, COALESCE(v_old_qty, 0), COALESCE(v_old_qty, 0) + p_qty, p_lot_no, p_user_id, 'Added via UI');
 
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
--- Update add_unexpected_count_item to support p_lot_no
+-- Update add_unexpected_count_item
 CREATE OR REPLACE FUNCTION add_unexpected_count_item(
     p_stock_count_id uuid,
     p_stock_count_zone_id uuid,
@@ -81,10 +92,7 @@ BEGIN
         RETURNING id INTO v_product_id;
     END IF;
 
-    -- Note: stock_count_items currently might not have lot_no column. 
-    -- If it does not, we ignore p_lot_no for the count sheet or add it over time.
-    -- (Proceeding without lot_no in count items unless specified by schema)
-    
+    -- 3. Upsert stock_count_items
     SELECT id INTO v_existing_item_id 
     FROM stock_count_items 
     WHERE stock_count_zone_id = p_stock_count_zone_id 
@@ -102,10 +110,10 @@ BEGIN
     ELSE
         INSERT INTO stock_count_items (
             stock_count_id, stock_count_zone_id, product_id, bin_id, 
-            system_qty, counted_qty, variance, status, counted_by, counted_at
+            system_qty, counted_qty, status, counted_by, counted_at
         ) VALUES (
             p_stock_count_id, p_stock_count_zone_id, v_product_id, p_bin_id,
-            0, p_qty, p_qty, 'counted', p_user_id, NOW()
+            0, p_qty, 'counted', p_user_id, NOW()
         );
     END IF;
 

@@ -1,8 +1,13 @@
--- Fix ambiguous function definitions by dropping both potential signatures
+-- Drop any existing versions
 DROP FUNCTION IF EXISTS public.upsert_inventory_csv(text, uuid);
 DROP FUNCTION IF EXISTS public.upsert_inventory_csv(jsonb, uuid);
 
--- Recreate the correct JSONB version
+-- Recreate with correct column names matching actual schema:
+-- bins: id, bin_code, zone_id, shelf, level, is_active, created_at
+-- products: id, product_code, product_name, unit, ns_code, ns_name, ns_sub_group, is_active, created_at, updated_at
+-- inventory: id, product_id, bin_id, qty, updated_at, updated_by, lot_no
+-- inventory_logs: id, product_id, bin_id_from, bin_id_to, action, qty_before, qty_after, performed_by, created_at, notes, lot_no
+
 CREATE OR REPLACE FUNCTION public.upsert_inventory_csv(p_rows jsonb, p_user_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -27,19 +32,18 @@ BEGIN
     FOR row_data IN SELECT * FROM jsonb_array_elements(p_rows)
     LOOP
         BEGIN
-            -- 1. Upsert Product
+            -- 1. Upsert Product (products table has: product_code, product_name, unit, ns_code, ns_name, ns_sub_group)
             SELECT id INTO v_product_id FROM products WHERE product_code = (row_data->>'product_code');
             
             IF v_product_id IS NULL THEN
                 INSERT INTO products (
-                    product_code, product_name, ns_code, ns_name, unit, created_by
+                    product_code, product_name, ns_code, ns_name, unit
                 ) VALUES (
                     row_data->>'product_code',
                     row_data->>'product_name',
                     row_data->>'ns_code',
                     row_data->>'ns_name',
-                    COALESCE(row_data->>'unit', 'EA'),
-                    p_user_id
+                    COALESCE(row_data->>'unit', 'EA')
                 ) RETURNING id INTO v_product_id;
                 
                 result := jsonb_set(result, '{products_created}', (COALESCE((result->>'products_created')::int, 0) + 1)::text::jsonb);
@@ -54,60 +58,57 @@ BEGIN
                 result := jsonb_set(result, '{products_updated}', (COALESCE((result->>'products_updated')::int, 0) + 1)::text::jsonb);
             END IF;
 
-            -- 2. Upsert Bin
+            -- 2. Upsert Bin (bins table uses: bin_code, not code/name)
             IF row_data->>'bin_code' IS NOT NULL AND row_data->>'bin_code' != '' THEN
-                SELECT id INTO v_bin_id FROM bins WHERE code = (row_data->>'bin_code');
+                SELECT id INTO v_bin_id FROM bins WHERE bin_code = (row_data->>'bin_code');
                 
                 IF v_bin_id IS NULL THEN
-                    INSERT INTO bins (code, name, created_by)
-                    VALUES (row_data->>'bin_code', row_data->>'bin_code', p_user_id)
-                    RETURNING id INTO v_bin_id;
-                    
-                    result := jsonb_set(result, '{bins_created}', (COALESCE((result->>'bins_created')::int, 0) + 1)::text::jsonb);
+                    -- Cannot auto-create bins without a zone_id (required FK)
+                    -- Skip this row if bin doesn't exist
+                    RAISE WARNING 'Bin not found: %, skipping row', row_data->>'bin_code';
+                    result := jsonb_set(result, '{errors_count}', (COALESCE((result->>'errors_count')::int, 0) + 1)::text::jsonb);
+                    CONTINUE;
                 END IF;
 
-                -- 3. Upsert Inventory with Lot No
+                -- 3. Upsert Inventory (inventory uses: qty, not quantity)
                 v_new_qty := COALESCE((row_data->>'qty')::integer, 0);
                 v_lot_no := NULLIF(TRIM(row_data->>'lot_no'), '');
                 
                 -- Check if inventory record exists for this product + bin + lot combination
                 IF v_lot_no IS NULL THEN
-                    -- Look for a record without a lot number
-                    SELECT quantity INTO v_current_qty FROM inventory 
+                    SELECT qty INTO v_current_qty FROM inventory 
                     WHERE product_id = v_product_id AND bin_id = v_bin_id AND (lot_no IS NULL OR lot_no = '');
                 ELSE
-                    -- Look for a record with the specific lot number
-                    SELECT quantity INTO v_current_qty FROM inventory 
+                    SELECT qty INTO v_current_qty FROM inventory 
                     WHERE product_id = v_product_id AND bin_id = v_bin_id AND lot_no = v_lot_no;
                 END IF;
                 
                 IF v_current_qty IS NULL THEN
                     -- Insert new inventory record
-                    INSERT INTO inventory (product_id, bin_id, lot_no, quantity)
+                    INSERT INTO inventory (product_id, bin_id, lot_no, qty)
                     VALUES (v_product_id, v_bin_id, v_lot_no, v_new_qty);
                     
-                    -- Record transaction
+                    -- Record log (inventory_logs uses: bin_id_from, bin_id_to, qty_before, qty_after, performed_by)
                     INSERT INTO inventory_logs (
-                        product_id, action, from_bin_id, to_bin_id, qty_change, lot_no, created_by
+                        product_id, action, bin_id_from, bin_id_to, qty_before, qty_after, lot_no, performed_by, notes
                     ) VALUES (
-                        v_product_id, 'import', NULL, v_bin_id, v_new_qty, v_lot_no, p_user_id
+                        v_product_id, 'import', NULL, v_bin_id, 0, v_new_qty, v_lot_no, p_user_id, 'CSV Import'
                     );
                 ELSIF v_current_qty != v_new_qty THEN
                     -- Update existing inventory record
                     IF v_lot_no IS NULL THEN
-                        UPDATE inventory SET quantity = v_new_qty, updated_at = NOW()
+                        UPDATE inventory SET qty = v_new_qty, updated_at = NOW()
                         WHERE product_id = v_product_id AND bin_id = v_bin_id AND (lot_no IS NULL OR lot_no = '');
                     ELSE
-                        UPDATE inventory SET quantity = v_new_qty, updated_at = NOW()
+                        UPDATE inventory SET qty = v_new_qty, updated_at = NOW()
                         WHERE product_id = v_product_id AND bin_id = v_bin_id AND lot_no = v_lot_no;
                     END IF;
                     
-                    -- Record transaction for the difference
+                    -- Record log for the difference
                     INSERT INTO inventory_logs (
-                        product_id, action, from_bin_id, to_bin_id, qty_change, lot_no, created_by
+                        product_id, action, bin_id_from, bin_id_to, qty_before, qty_after, lot_no, performed_by, notes
                     ) VALUES (
-                        v_product_id, 'adjust', NULL, v_bin_id, 
-                        (v_new_qty - v_current_qty), v_lot_no, p_user_id
+                        v_product_id, 'adjust', NULL, v_bin_id, v_current_qty, v_new_qty, v_lot_no, p_user_id, 'CSV Import Adjustment'
                     );
                 END IF;
                 
