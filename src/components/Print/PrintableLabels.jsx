@@ -303,7 +303,7 @@ const PrintableLabels = ({ bins, layout = 'A5', globalLotNo = '' }) => {
                     className="print-page-break mx-auto my-8 print:my-0"
                     style={{ width: preset.pageWidth, height: preset.pageHeight }}
                 >
-                    <Label bin={bin} style={preset.style} />
+                    <Label bin={bin} style={preset.style} globalLotNo={globalLotNo} />
                 </div>
             ))}
         </div>
