@@ -83,16 +83,18 @@ const LAYOUT_PRESETS = {
 };
 
 // Single label component
-const Label = ({ bin, style, globalLotNo }) => (
+const Label = ({ bin, style, globalLotNo }) => {
+    const effectiveLotNo = getEffectiveLotNo(bin, globalLotNo);
+    return (
     <div className={`flex flex-col items-center justify-between ${style.labelBorder} border-black box-border relative bg-white ${style.padding} w-full h-full`}>
         {/* Header */}
         <div className={`w-full text-center ${style.headerBorder} border-black pb-0.5 mb-2`}>
             <h1 className={`${style.titleSize} font-black uppercase tracking-widest text-slate-900 leading-tight`}>DDS Warehouse</h1>
-            <p className={`${style.subTitleSize} font-bold text-slate-600 leading-tight`}>{globalLotNo ? 'Location & Lot ID' : 'Location ID'}</p>
+            <p className={`${style.subTitleSize} font-bold text-slate-600 leading-tight`}>{effectiveLotNo ? 'Location & Lot ID' : 'Location ID'}</p>
         </div>
 
         {/* Content */}
-        {globalLotNo ? (
+        {effectiveLotNo ? (
             <div className="flex-1 flex flex-row items-center justify-between w-full h-full min-h-0 gap-6">
                 {/* Left: Bin */}
                 <div className="flex-1 flex flex-col items-center justify-center h-full min-w-0 w-1/2">
@@ -115,14 +117,14 @@ const Label = ({ bin, style, globalLotNo }) => (
                 {/* Right: Lot No */}
                 <div className="flex-1 flex flex-col items-center justify-center h-full min-w-0 w-1/2">
                     <img
-                         src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(globalLotNo)}`}
-                         alt={`QR Code for Lot ${globalLotNo}`}
+                         src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(effectiveLotNo)}`}
+                         alt={`QR Code for Lot ${effectiveLotNo}`}
                          className={`${style.qrImgClass} object-contain border border-slate-200 mb-4 max-h-[60%]`}
                     />
                     <div className="text-center w-full">
                         <p className={`${style.binNoSize} text-slate-400 font-bold mb-1 uppercase tracking-wider`}>LOT NO.</p>
-                        <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-2 line-clamp-2 ${(globalLotNo?.length || 0) > 15 ? 'text-3xl' : style.binIdSize}`}>
-                            {globalLotNo}
+                        <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-2 line-clamp-2 ${(effectiveLotNo?.length || 0) > 15 ? 'text-3xl' : style.binIdSize}`}>
+                            {effectiveLotNo}
                         </h2>
                     </div>
                 </div>
@@ -150,15 +152,30 @@ const Label = ({ bin, style, globalLotNo }) => (
             <p className={`${style.footerSize} font-bold uppercase tracking-widest`}>Scan to Update</p>
         </div>
     </div>
-);
+    );
+};
+
+// Helper: get effective lot no for a bin (from globalLotNo or from bin's inventory items)
+const getEffectiveLotNo = (bin, globalLotNo) => {
+    if (globalLotNo) return globalLotNo;
+    // Auto-detect from the bin's inventory items
+    if (bin.items && bin.items.length > 0) {
+        // Collect unique lot numbers from all items in this bin
+        const lotNos = [...new Set(bin.items.map(i => i.lotNo).filter(Boolean))];
+        if (lotNos.length === 1) return lotNos[0];
+        if (lotNos.length > 1) return lotNos[0]; // Use first lot no if multiple
+    }
+    return '';
+};
 
 // Multi-up compact label (vertical layout - QR top, text bottom)
 const CompactLabel = ({ bin, style, globalLotNo }) => {
+    const effectiveLotNo = getEffectiveLotNo(bin, globalLotNo);
     return (
         <div className="flex flex-col items-center border border-black box-border bg-white w-full h-full overflow-hidden justify-center"
             style={{ padding: '2mm' }}
         >
-            {globalLotNo ? (
+            {effectiveLotNo ? (
                 // Side-by-side layout for Lot No and Bin
                 <div className="flex flex-row w-full h-full gap-2 items-center justify-between">
                     {/* Left side - Bin */}
@@ -185,15 +202,15 @@ const CompactLabel = ({ bin, style, globalLotNo }) => {
                     <div className="flex flex-col items-center justify-center flex-1 h-full w-1/2 min-w-0">
                         <div className="flex-1 flex items-center justify-center w-full min-h-0">
                            <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(globalLotNo)}`}
-                                alt={`QR Code for Lot ${globalLotNo}`}
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(effectiveLotNo)}`}
+                                alt={`QR Code for Lot ${effectiveLotNo}`}
                                 className="object-contain max-h-full"
                             />
                         </div>
                         <div className="w-full text-center flex-shrink-0 mt-2">
                             <p className="text-[10px] text-slate-500 font-bold uppercase mb-0.5 leading-none">Lot No.</p>
-                            <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-1 line-clamp-2 ${(globalLotNo?.length || 0) > 15 ? 'text-xl' : (globalLotNo?.length || 0) > 10 ? 'text-2xl' : style.binIdSize}`}>
-                                {globalLotNo}
+                            <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-1 line-clamp-2 ${(effectiveLotNo?.length || 0) > 15 ? 'text-xl' : (effectiveLotNo?.length || 0) > 10 ? 'text-2xl' : style.binIdSize}`}>
+                                {effectiveLotNo}
                             </h2>
                         </div>
                     </div>
