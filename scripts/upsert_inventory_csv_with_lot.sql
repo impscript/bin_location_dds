@@ -2,11 +2,12 @@
 DROP FUNCTION IF EXISTS public.upsert_inventory_csv(text, uuid);
 DROP FUNCTION IF EXISTS public.upsert_inventory_csv(jsonb, uuid);
 
--- Recreate with correct column names matching actual schema:
--- bins: id, bin_code, zone_id, shelf, level, is_active, created_at
--- products: id, product_code, product_name, unit, ns_code, ns_name, ns_sub_group, is_active, created_at, updated_at
--- inventory: id, product_id, bin_id, qty, updated_at, updated_by, lot_no
--- inventory_logs: id, product_id, bin_id_from, bin_id_to, action, qty_before, qty_after, performed_by, created_at, notes, lot_no
+-- Recreate with auto-create bins/zones and correct column names
+-- Schema reference:
+--   bins: id, bin_code, zone_id, shelf, level, is_active, created_at
+--   products: id, product_code, product_name, unit, ns_code, ns_name, ns_sub_group, is_active, created_at, updated_at
+--   inventory: id, product_id, bin_id, qty, updated_at, updated_by, lot_no
+--   inventory_logs: id, product_id, bin_id_from, bin_id_to, action, qty_before, qty_after, performed_by, created_at, notes, lot_no
 
 CREATE OR REPLACE FUNCTION public.upsert_inventory_csv(p_rows jsonb, p_user_id uuid)
  RETURNS jsonb
@@ -17,9 +18,11 @@ DECLARE
     row_data jsonb;
     v_product_id uuid;
     v_bin_id uuid;
+    v_zone_id uuid;
     v_current_qty integer;
     v_new_qty integer;
     v_lot_no text;
+    v_bin_code text;
     
     result jsonb := '{
         "products_created": 0,
@@ -29,10 +32,17 @@ DECLARE
         "errors_count": 0
     }'::jsonb;
 BEGIN
+    -- Ensure a default zone exists for auto-created bins
+    SELECT id INTO v_zone_id FROM zones WHERE name = 'Imported' LIMIT 1;
+    IF v_zone_id IS NULL THEN
+        INSERT INTO zones (name, type, sort_order) VALUES ('Imported', 'standard', 99)
+        RETURNING id INTO v_zone_id;
+    END IF;
+
     FOR row_data IN SELECT * FROM jsonb_array_elements(p_rows)
     LOOP
         BEGIN
-            -- 1. Upsert Product (products table has: product_code, product_name, unit, ns_code, ns_name, ns_sub_group)
+            -- 1. Upsert Product
             SELECT id INTO v_product_id FROM products WHERE product_code = (row_data->>'product_code');
             
             IF v_product_id IS NULL THEN
@@ -58,23 +68,23 @@ BEGIN
                 result := jsonb_set(result, '{products_updated}', (COALESCE((result->>'products_updated')::int, 0) + 1)::text::jsonb);
             END IF;
 
-            -- 2. Upsert Bin (bins table uses: bin_code, not code/name)
-            IF row_data->>'bin_code' IS NOT NULL AND row_data->>'bin_code' != '' THEN
-                SELECT id INTO v_bin_id FROM bins WHERE bin_code = (row_data->>'bin_code');
+            -- 2. Upsert Bin (auto-create under "Imported" zone if not exists)
+            v_bin_code := TRIM(row_data->>'bin_code');
+            IF v_bin_code IS NOT NULL AND v_bin_code != '' THEN
+                SELECT id INTO v_bin_id FROM bins WHERE bin_code = v_bin_code;
                 
                 IF v_bin_id IS NULL THEN
-                    -- Cannot auto-create bins without a zone_id (required FK)
-                    -- Skip this row if bin doesn't exist
-                    RAISE WARNING 'Bin not found: %, skipping row', row_data->>'bin_code';
-                    result := jsonb_set(result, '{errors_count}', (COALESCE((result->>'errors_count')::int, 0) + 1)::text::jsonb);
-                    CONTINUE;
+                    INSERT INTO bins (bin_code, zone_id)
+                    VALUES (v_bin_code, v_zone_id)
+                    RETURNING id INTO v_bin_id;
+                    
+                    result := jsonb_set(result, '{bins_created}', (COALESCE((result->>'bins_created')::int, 0) + 1)::text::jsonb);
                 END IF;
 
-                -- 3. Upsert Inventory (inventory uses: qty, not quantity)
+                -- 3. Upsert Inventory
                 v_new_qty := COALESCE((row_data->>'qty')::integer, 0);
                 v_lot_no := NULLIF(TRIM(row_data->>'lot_no'), '');
                 
-                -- Check if inventory record exists for this product + bin + lot combination
                 IF v_lot_no IS NULL THEN
                     SELECT qty INTO v_current_qty FROM inventory 
                     WHERE product_id = v_product_id AND bin_id = v_bin_id AND (lot_no IS NULL OR lot_no = '');
@@ -84,18 +94,15 @@ BEGIN
                 END IF;
                 
                 IF v_current_qty IS NULL THEN
-                    -- Insert new inventory record
                     INSERT INTO inventory (product_id, bin_id, lot_no, qty)
                     VALUES (v_product_id, v_bin_id, v_lot_no, v_new_qty);
                     
-                    -- Record log (inventory_logs uses: bin_id_from, bin_id_to, qty_before, qty_after, performed_by)
                     INSERT INTO inventory_logs (
                         product_id, action, bin_id_from, bin_id_to, qty_before, qty_after, lot_no, performed_by, notes
                     ) VALUES (
                         v_product_id, 'import', NULL, v_bin_id, 0, v_new_qty, v_lot_no, p_user_id, 'CSV Import'
                     );
                 ELSIF v_current_qty != v_new_qty THEN
-                    -- Update existing inventory record
                     IF v_lot_no IS NULL THEN
                         UPDATE inventory SET qty = v_new_qty, updated_at = NOW()
                         WHERE product_id = v_product_id AND bin_id = v_bin_id AND (lot_no IS NULL OR lot_no = '');
@@ -104,7 +111,6 @@ BEGIN
                         WHERE product_id = v_product_id AND bin_id = v_bin_id AND lot_no = v_lot_no;
                     END IF;
                     
-                    -- Record log for the difference
                     INSERT INTO inventory_logs (
                         product_id, action, bin_id_from, bin_id_to, qty_before, qty_after, lot_no, performed_by, notes
                     ) VALUES (
@@ -116,7 +122,6 @@ BEGIN
             END IF;
 
         EXCEPTION WHEN OTHERS THEN
-            -- Log error and continue with next row
             RAISE WARNING 'Error processing row %: %', row_data, SQLERRM;
             result := jsonb_set(result, '{errors_count}', (COALESCE((result->>'errors_count')::int, 0) + 1)::text::jsonb);
         END;
