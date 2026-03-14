@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, FileDown, FileUp, Printer, BarChart3, ScrollText, ChevronRight, Users, Moon, Sun, Bell } from 'lucide-react';
+import { LogOut, FileDown, FileUp, Printer, BarChart3, ScrollText, ChevronRight, Users, Moon, Sun, Bell, MapPin } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -97,6 +97,10 @@ export default function SettingsPage() {
                 hasPermission('canManageUsers') && {
                     icon: Users, label: 'จัดการผู้ใช้', desc: 'เพิ่ม/แก้ไข/ปิดใช้งาน',
                     onClick: () => navigate('/settings/users')
+                },
+                hasPermission('canManageUsers') && {
+                    icon: MapPin, label: 'Zone Mapping', desc: 'กำหนด Bin → Zone สำหรับ Import',
+                    onClick: () => navigate('/settings/zone-mappings')
                 },
                 {
                     icon: darkMode ? Sun : Moon,

@@ -11,6 +11,7 @@ import ProductDetail from './pages/ProductDetail';
 import ScanPage from './pages/ScanPage';
 import SettingsPage from './pages/SettingsPage';
 import UserManagement from './pages/UserManagement';
+import ZoneMappingSettings from './pages/ZoneMappingSettings';
 import ActivityLog from './pages/ActivityLog';
 import LowStockPage from './pages/LowStockPage';
 import StockCountList from './pages/StockCount/StockCountList';
@@ -87,6 +88,7 @@ function App() {
                                 <Route path="scan" element={<ScanPage />} />
                                 <Route path="settings" element={<SettingsPage />} />
                                 <Route path="settings/users" element={<UserManagement />} />
+                                <Route path="settings/zone-mappings" element={<ZoneMappingSettings />} />
                                 <Route path="activity-log" element={<ActivityLog />} />
                                 <Route path="low-stock" element={<LowStockPage />} />
                                 <Route path="*" element={<Navigate to="/" replace />} />

@@ -66,17 +66,19 @@ export const REAL_INVENTORY_DATA = [
     },
 ];
 
-export const STANDARD_ZONES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'Premium'];
-export const SPECIAL_ZONES = ['Cutsize', 'E-Com', 'Folio Ream', 'Folio Pallet', 'Event', 'Consignment'];
+export const STANDARD_ZONES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V'];
+export const SPECIAL_ZONES = ['DEMO', 'E-Com', 'OB_Consignment', 'OB_Cutsize', 'OB_Event', 'OB_Folio Full Pallet', 'OB_Folio Ream', 'OB_Premium', 'PKN_Damage (DS)', 'PKN_DeadStock (DS)', 'Print_CopyPointReam', 'Print_FastPrintReam'];
 export const ALL_ZONES = [...STANDARD_ZONES, ...SPECIAL_ZONES];
 
 export const SPECIAL_ZONE_MAPPING = {
-    'Cutsize': 'OB_Cutsize',
+    'OB_Cutsize': 'OB_Cutsize',
     'E-Com': 'E-Com',
-    'Folio Ream': 'Folio Ream',
-    'Folio Pallet': 'Folio Full Pallet',
-    'Event': 'OB_Event',
-    'Consignment': 'OB_Consignment'
+    'OB_Folio Ream': 'OB_Folio Ream',
+    'OB_Folio Full Pallet': 'OB_Folio Full Pallet',
+    'OB_Event': 'OB_Event',
+    'OB_Consignment': 'OB_Consignment',
+    'DEMO': 'DEMO',
+    'OB_Premium': 'OB_Premium',
 };
 
 export const ZONES = ALL_ZONES; // For backward compatibility if needed, but we should switch to explicit Standard/Special where relevant
