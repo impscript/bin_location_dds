@@ -187,9 +187,9 @@ const CompactLabel = ({ bin, style, globalLotNo }) => {
                                 className="object-contain max-h-full"
                             />
                         </div>
-                        <div className="w-full text-center flex-shrink-0 mt-2">
-                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-0.5 leading-none">Bin No.</p>
-                            <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-1 line-clamp-2 ${bin.id.length > 15 ? 'text-xl' : bin.id.length > 10 ? 'text-2xl' : style.binIdSize}`}>
+                        <div className="w-full text-center flex-shrink-0 mt-1">
+                            <p className="text-[8px] text-slate-500 font-bold uppercase mb-0.5 leading-none">Bin No.</p>
+                            <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-all px-0.5 ${bin.id.length > 18 ? 'text-[0.65rem]' : bin.id.length > 14 ? 'text-xs' : bin.id.length > 10 ? 'text-sm' : 'text-base'}`}>
                                 {bin.id}
                             </h2>
                         </div>
@@ -207,9 +207,9 @@ const CompactLabel = ({ bin, style, globalLotNo }) => {
                                 className="object-contain max-h-full"
                             />
                         </div>
-                        <div className="w-full text-center flex-shrink-0 mt-2">
-                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-0.5 leading-none">Lot No.</p>
-                            <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-1 line-clamp-2 ${(effectiveLotNo?.length || 0) > 15 ? 'text-xl' : (effectiveLotNo?.length || 0) > 10 ? 'text-2xl' : style.binIdSize}`}>
+                        <div className="w-full text-center flex-shrink-0 mt-1">
+                            <p className="text-[8px] text-slate-500 font-bold uppercase mb-0.5 leading-none">Lot No.</p>
+                            <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-all px-0.5 ${(effectiveLotNo?.length || 0) > 18 ? 'text-[0.65rem]' : (effectiveLotNo?.length || 0) > 14 ? 'text-xs' : (effectiveLotNo?.length || 0) > 10 ? 'text-sm' : 'text-base'}`}>
                                 {effectiveLotNo}
                             </h2>
                         </div>
