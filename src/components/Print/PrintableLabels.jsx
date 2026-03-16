@@ -126,6 +126,11 @@ const Label = ({ bin, style, globalLotNo }) => {
                         <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-words px-2 line-clamp-2 ${(effectiveLotNo?.length || 0) > 15 ? 'text-3xl' : style.binIdSize}`}>
                             {effectiveLotNo}
                         </h2>
+                        {bin.isItem && bin.itemName && (
+                            <p className="text-slate-600 font-medium text-sm mt-1 px-4 truncate max-w-full leading-tight">
+                                {bin.itemName}
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -158,6 +163,7 @@ const Label = ({ bin, style, globalLotNo }) => {
 // Helper: get effective lot no for a bin (from globalLotNo or from bin's inventory items)
 const getEffectiveLotNo = (bin, globalLotNo) => {
     if (globalLotNo) return globalLotNo;
+    if (bin.isItem) return bin.itemLotNo || '';
     // Auto-detect from the bin's inventory items
     if (bin.items && bin.items.length > 0) {
         // Collect unique lot numbers from all items in this bin
@@ -212,6 +218,11 @@ const CompactLabel = ({ bin, style, globalLotNo }) => {
                             <h2 className={`leading-[1.1] font-black tracking-tight text-slate-900 break-all px-0.5 ${(effectiveLotNo?.length || 0) > 18 ? 'text-[0.65rem]' : (effectiveLotNo?.length || 0) > 14 ? 'text-xs' : (effectiveLotNo?.length || 0) > 10 ? 'text-sm' : 'text-base'}`}>
                                 {effectiveLotNo}
                             </h2>
+                            {bin.isItem && bin.itemName && (
+                                <p className="text-slate-600 font-medium text-[8px] mt-0.5 px-1 truncate w-full leading-tight">
+                                    {bin.itemName}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -285,7 +296,7 @@ const PrintableLabels = ({ bins, layout = 'A5', globalLotNo = '' }) => {
                         }}
                     >
                         {pageBins.map((bin) => (
-                            <CompactLabel key={bin.id} bin={bin} style={preset.style} globalLotNo={globalLotNo} />
+                            <CompactLabel key={bin.uniqueKey || bin.id} bin={bin} style={preset.style} globalLotNo={globalLotNo} />
                         ))}
                         {/* Empty slots for incomplete pages */}
                         {Array.from({ length: perPage - pageBins.length }).map((_, i) => (
@@ -316,7 +327,7 @@ const PrintableLabels = ({ bins, layout = 'A5', globalLotNo = '' }) => {
             </style>
             {bins.map((bin) => (
                 <div
-                    key={bin.id}
+                    key={bin.uniqueKey || bin.id}
                     className="print-page-break mx-auto my-8 print:my-0"
                     style={{ width: preset.pageWidth, height: preset.pageHeight }}
                 >

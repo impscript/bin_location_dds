@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useWarehouse } from '../context/WarehouseContext';
 import PrintableLabels, { LAYOUT_PRESETS } from '../components/Print/PrintableLabels';
-import { ArrowLeft, Printer, Grid2x2 } from 'lucide-react';
+import { ArrowLeft, Printer, Grid2x2, List } from 'lucide-react';
 
 const PrintPage = () => {
     const [searchParams] = useSearchParams();
@@ -10,9 +10,33 @@ const PrintPage = () => {
     const { warehouseData, loading } = useWarehouse();
     const [layout, setLayout] = React.useState('A5x4');
     const [globalLotNo, setGlobalLotNo] = React.useState('');
+    const [printByItem, setPrintByItem] = React.useState(false);
 
     const binIds = searchParams.get('bins')?.split(',') || [];
     const binsToPrint = warehouseData.filter(b => binIds.includes(b.id));
+
+    let labelsToPrint = [];
+    if (printByItem) {
+        binsToPrint.forEach(bin => {
+            if (bin.items && bin.items.length > 0) {
+                bin.items.forEach((item, index) => {
+                    labelsToPrint.push({
+                        ...bin,
+                        uniqueKey: `${bin.id}-${index}-${item.lotNo || ''}`,
+                        isItem: true,
+                        itemLotNo: item.lotNo || '',
+                        itemName: item.nsName || item.name || ''
+                    });
+                });
+            } else {
+                labelsToPrint.push({ ...bin, uniqueKey: bin.id });
+            }
+        });
+    } else {
+        labelsToPrint = binsToPrint.map(b => ({ ...b, uniqueKey: b.id }));
+    }
+
+    const totalLabels = labelsToPrint.length;
 
     useEffect(() => {
     }, []);
@@ -22,11 +46,11 @@ const PrintPage = () => {
     };
 
     if (loading) return <div>Loading...</div>;
-    if (binsToPrint.length === 0) return <div className="p-10">No bins selected to print.</div>;
+    if (labelsToPrint.length === 0) return <div className="p-10">No bins selected to print.</div>;
 
     const preset = LAYOUT_PRESETS[layout];
     const perPage = preset.cols * preset.rows;
-    const totalPages = Math.ceil(binsToPrint.length / perPage);
+    const totalPages = Math.ceil(totalLabels / perPage);
 
     // Separate single vs multi-up layouts
     const singleLayouts = ['A4', 'A5', 'A6', 'A7'];
@@ -41,7 +65,7 @@ const PrintPage = () => {
                         <ArrowLeft className="h-6 w-6 text-slate-600" />
                     </button>
                     <div>
-                        <h1 className="font-bold text-lg text-slate-800">Print Preview ({binsToPrint.length} Labels)</h1>
+                        <h1 className="font-bold text-lg text-slate-800">Print Preview ({totalLabels} Labels)</h1>
                         <p className="text-xs text-slate-500">
                             {preset.label} · {preset.desc}/page · {totalPages} page{totalPages !== 1 ? 's' : ''}
                         </p>
@@ -49,6 +73,19 @@ const PrintPage = () => {
                 </div>
 
                 <div className="flex items-center gap-3 flex-wrap justify-end">
+                    {/* Print by Item Toggle */}
+                    <button
+                        onClick={() => setPrintByItem(!printByItem)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                            printByItem
+                                ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm'
+                                : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
+                        }`}
+                    >
+                        <List className={`w-4 h-4 ${printByItem ? 'text-indigo-600' : 'text-slate-400'}`} />
+                        Print by Item
+                    </button>
+
                     {/* Lot No Input */}
                     <div className="flex flex-col">
                         <input
@@ -102,7 +139,7 @@ const PrintPage = () => {
 
             {/* Print Content */}
             <div className="flex justify-center my-8 print:my-0 print:block">
-                <PrintableLabels bins={binsToPrint} layout={layout} globalLotNo={globalLotNo} />
+                <PrintableLabels bins={labelsToPrint} layout={layout} globalLotNo={globalLotNo} />
             </div>
         </div>
     );
