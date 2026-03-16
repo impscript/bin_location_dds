@@ -127,7 +127,7 @@ const Label = ({ bin, style, globalLotNo }) => {
                             {effectiveLotNo}
                         </h2>
                         {bin.isItem && bin.itemName && (
-                            <p className="text-slate-600 font-medium text-sm mt-1 px-4 truncate max-w-full leading-tight">
+                            <p className="text-slate-600 font-medium text-sm mt-1 px-4 break-words line-clamp-2 max-w-full leading-tight">
                                 {bin.itemName}
                             </p>
                         )}
@@ -219,7 +219,7 @@ const CompactLabel = ({ bin, style, globalLotNo }) => {
                                 {effectiveLotNo}
                             </h2>
                             {bin.isItem && bin.itemName && (
-                                <p className="text-slate-600 font-medium text-[8px] mt-0.5 px-1 truncate w-full leading-tight">
+                                <p className="text-slate-600 font-medium text-[8px] mt-0.5 px-1 break-words line-clamp-2 w-full leading-tight">
                                     {bin.itemName}
                                 </p>
                             )}
