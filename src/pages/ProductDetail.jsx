@@ -163,12 +163,12 @@ const ProductDetail = () => {
                             {locations.map((loc, idx) => (
                                 <tr key={idx} className="hover:bg-blue-50/30 transition">
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center">
-                                            <div className="h-10 w-10 flex-shrink-0 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-sm">
-                                                {loc.binId.split(' ').pop()} {/* Show only last part like A1-1 */}
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="h-9 w-9 flex-shrink-0 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                <MapPin className="h-4 w-4 text-blue-600" />
                                             </div>
-                                            <div className="ml-4">
-                                                <div className="text-sm font-medium text-slate-900">{loc.binId}</div>
+                                            <div className="min-w-0">
+                                                <div className="text-sm font-semibold text-slate-900 break-words">{loc.binId}</div>
                                             </div>
                                         </div>
                                     </td>
