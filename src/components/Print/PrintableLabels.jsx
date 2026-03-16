@@ -183,10 +183,10 @@ const CompactLabel = ({ bin, style, globalLotNo }) => {
         >
             {effectiveLotNo ? (
                 // Side-by-side layout for Lot No and Bin
-                <div className="flex flex-row w-full h-full gap-2 items-center justify-between">
+                <div className="flex flex-row w-full h-full gap-2 items-stretch justify-between pb-1">
                     {/* Left side - Bin */}
-                    <div className="flex flex-col items-center justify-center flex-1 h-full w-1/2 min-w-0">
-                        <div className="flex-1 flex items-center justify-center w-full min-h-0">
+                    <div className="flex flex-col items-center justify-between flex-1 h-full w-1/2 min-w-0">
+                        <div className="flex-1 flex items-start justify-center w-full min-h-0 pt-1">
                             <img
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(bin.id)}`}
                                 alt={`QR Code for ${bin.id}`}
@@ -205,8 +205,8 @@ const CompactLabel = ({ bin, style, globalLotNo }) => {
                     <div className="w-px h-full bg-slate-300 mx-1 border-r border-dashed border-slate-400"></div>
                     
                     {/* Right side - Lot No */}
-                    <div className="flex flex-col items-center justify-center flex-1 h-full w-1/2 min-w-0">
-                        <div className="flex-1 flex items-center justify-center w-full min-h-0">
+                    <div className="flex flex-col items-center justify-between flex-1 h-full w-1/2 min-w-0">
+                        <div className="flex-1 flex items-start justify-center w-full min-h-0 pt-1">
                            <img
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=${style.qrSize}&data=${encodeURIComponent(effectiveLotNo)}`}
                                 alt={`QR Code for Lot ${effectiveLotNo}`}
