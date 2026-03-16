@@ -130,7 +130,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
 
             // Process in batches to avoid statement timeout
             const totalBatches = Math.ceil(rows.length / BATCH_SIZE);
-            let totalResult = { products_created: 0, products_updated: 0, bins_created: 0, inventory_updated: 0, errors_count: 0 };
+            let totalResult = { products_created: 0, products_updated: 0, bins_created: 0, inventory_created: 0, inventory_updated: 0, inventory_skipped: 0, errors_count: 0 };
 
             for (let i = 0; i < totalBatches; i++) {
                 const batch = rows.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
@@ -147,13 +147,15 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                 totalResult.products_created += result.products_created || 0;
                 totalResult.products_updated += result.products_updated || 0;
                 totalResult.bins_created += result.bins_created || 0;
+                totalResult.inventory_created += result.inventory_created || 0;
                 totalResult.inventory_updated += result.inventory_updated || 0;
+                totalResult.inventory_skipped += result.inventory_skipped || 0;
                 totalResult.errors_count += result.errors_count || 0;
             }
 
             setImportResult(totalResult);
             setStep('done');
-            toast.success(`นำเข้าสำเร็จ! ${totalResult.products_created} สินค้าใหม่, ${totalResult.products_updated} อัพเดท`);
+            toast.success(`นำเข้าสำเร็จ! ${totalResult.inventory_created} ใหม่, ${totalResult.inventory_updated} อัพเดท, ${totalResult.inventory_skipped} ไม่เปลี่ยน`);
             onSuccess?.();
         } catch (err) {
             console.error('Import error:', err);
@@ -181,7 +183,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         setHeaders([]);
         setStep('upload');
         setImportResult(null);
-        setColumnMap({ product_code: '', product_name: '', ns_code: '', ns_name: '', bin_code: '', qty: '', unit: '' });
+        setColumnMap({ product_code: '', product_name: '', ns_code: '', ns_name: '', bin_code: '', lot_no: '', qty: '', unit: '' });
         onClose();
     };
 
@@ -334,14 +336,14 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                                 <h3 className="text-xl font-bold text-slate-800">นำเข้าสำเร็จ!</h3>
                                 <p className="text-sm text-slate-500 mt-1">ข้อมูลถูกอัพเดทเรียบร้อย</p>
                             </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-lg mx-auto">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-xl mx-auto">
                                 <div className="bg-blue-50 rounded-xl p-3 text-center">
                                     <div className="text-2xl font-bold text-blue-700">{importResult.products_created || 0}</div>
                                     <div className="text-xs text-blue-600">สินค้าใหม่</div>
                                 </div>
                                 <div className="bg-emerald-50 rounded-xl p-3 text-center">
-                                    <div className="text-2xl font-bold text-emerald-700">{importResult.products_updated || 0}</div>
-                                    <div className="text-xs text-emerald-600">อัพเดท</div>
+                                    <div className="text-2xl font-bold text-emerald-700">{importResult.inventory_created || 0}</div>
+                                    <div className="text-xs text-emerald-600">Inventory ใหม่</div>
                                 </div>
                                 <div className="bg-purple-50 rounded-xl p-3 text-center">
                                     <div className="text-2xl font-bold text-purple-700">{importResult.bins_created || 0}</div>
@@ -349,7 +351,15 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                                 </div>
                                 <div className="bg-amber-50 rounded-xl p-3 text-center">
                                     <div className="text-2xl font-bold text-amber-700">{importResult.inventory_updated || 0}</div>
-                                    <div className="text-xs text-amber-600">Inventory</div>
+                                    <div className="text-xs text-amber-600">Qty อัพเดท</div>
+                                </div>
+                                <div className="bg-slate-50 rounded-xl p-3 text-center">
+                                    <div className="text-2xl font-bold text-slate-500">{importResult.inventory_skipped || 0}</div>
+                                    <div className="text-xs text-slate-400">ไม่เปลี่ยนแปลง</div>
+                                </div>
+                                <div className="bg-orange-50 rounded-xl p-3 text-center">
+                                    <div className="text-2xl font-bold text-orange-700">{importResult.products_updated || 0}</div>
+                                    <div className="text-xs text-orange-600">สินค้าอัพเดท</div>
                                 </div>
                             </div>
                             {importResult.errors_count > 0 && (
