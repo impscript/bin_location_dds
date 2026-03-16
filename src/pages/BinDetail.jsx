@@ -124,9 +124,7 @@ const BinDetail = () => {
                                                             </span>
                                                         )}
                                                         {item.lotNo && (
-                                                            <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold tracking-wide border border-indigo-200">
-                                                                Lot: {item.lotNo}
-                                                            </span>
+                                                            <CopyBadge text={item.lotNo} variant="indigo" size="sm" label="Lot" />
                                                         )}
                                                         {item.isDummy && (
                                                             <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-200">

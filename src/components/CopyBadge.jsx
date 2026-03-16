@@ -52,6 +52,10 @@ const CopyBadge = ({ text, label, variant = 'blue', size = 'sm', className }) =>
             base: 'bg-purple-50 text-purple-700 border-purple-100 hover:bg-purple-100 hover:border-purple-200',
             copied: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         },
+        indigo: {
+            base: 'bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-indigo-100 hover:border-indigo-200',
+            copied: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        },
     };
 
     const v = variants[variant] || variants.blue;

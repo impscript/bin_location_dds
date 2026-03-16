@@ -162,7 +162,7 @@ const ProductDetail = () => {
                         <tbody className="bg-white divide-y divide-slate-200">
                             {locations.map((loc, idx) => (
                                 <tr key={idx} className="hover:bg-blue-50/30 transition">
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-6 py-4">
                                         <div className="flex items-center">
                                             <div className="h-10 w-10 flex-shrink-0 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-sm">
                                                 {loc.binId.split(' ').pop()} {/* Show only last part like A1-1 */}
@@ -177,10 +177,12 @@ const ProductDetail = () => {
                                             Zone {loc.zone}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="text-sm font-medium text-slate-900 border px-2 py-1 bg-slate-50 rounded-md">
-                                            {loc.lotNo || '-'}
-                                        </span>
+                                    <td className="px-6 py-4">
+                                        {loc.lotNo ? (
+                                            <CopyBadge text={loc.lotNo} variant="indigo" size="md" label="Lot" />
+                                        ) : (
+                                            <span className="text-slate-400">-</span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right">
                                         <span className="text-lg font-bold text-slate-900">{loc.qty.toLocaleString()}</span>
