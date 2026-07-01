@@ -5,7 +5,7 @@
             "destination": "https://mobiledev.advanceagro.net/ws/api/idms/:path*"
         },
         {
-            "source": "/(.*)",
+            "source": "/((?!api-idms).*)" ,
             "destination": "/index.html"
         }
     ]
