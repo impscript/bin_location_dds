@@ -95,14 +95,14 @@ export function AuthProvider({ children }) {
     const loginWithCredentials = async (username, password) => {
         const passwordMd5 = md5(password);
 
-        const proxyIdmsUrl = `/api-idms/authentication/?account=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}&Service=0000&AgentId=SystemMango&AgentCode=Np4kfRh5`;
+        const proxyIdmsUrl = `/api/idms-proxy?account=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}&Service=0000&AgentId=SystemMango&AgentCode=Np4kfRh5`;
         const directIdmsUrl = `https://mobiledev.advanceagro.net/ws/api/idms/authentication/?account=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}&Service=0000&AgentId=SystemMango&AgentCode=Np4kfRh5`;
 
         let data = null;
 
-        // Strategy 1: Local Proxy (Vercel rewrite in production, Vite proxy in development)
+        // Strategy 1: Local / Vercel Serverless Function Proxy
         try {
-            console.log('Trying local proxy IDMS call...');
+            console.log('Trying local / Vercel proxy IDMS call...');
             const res = await fetch(proxyIdmsUrl, {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' },

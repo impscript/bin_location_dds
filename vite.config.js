@@ -6,10 +6,11 @@ export default defineConfig({
     plugins: [react()],
     server: {
         proxy: {
-            '/api-idms': {
-                target: 'https://mobiledev.advanceagro.net/ws/api/idms',
+            '/api/idms-proxy': {
+                target: 'https://mobiledev.advanceagro.net/ws/api/idms/authentication/',
                 changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api-idms/, ''),
+                secure: false,
+                rewrite: (path) => '',
             }
         }
     }
