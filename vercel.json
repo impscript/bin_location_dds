@@ -1,6 +1,10 @@
 {
     "rewrites": [
         {
+            "source": "/api-idms/:path*",
+            "destination": "https://mobiledev.advanceagro.net/ws/api/idms/:path*"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }

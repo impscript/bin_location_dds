@@ -95,32 +95,46 @@ export function AuthProvider({ children }) {
     const loginWithCredentials = async (username, password) => {
         const passwordMd5 = md5(password);
 
-        const idmsUrl = `https://mobiledev.advanceagro.net/ws/api/idms/authentication/?account=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}&Service=0000&AgentId=SystemMango&AgentCode=Np4kfRh5`;
+        const proxyIdmsUrl = `/api-idms/authentication/?account=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}&Service=0000&AgentId=SystemMango&AgentCode=Np4kfRh5`;
+        const directIdmsUrl = `https://mobiledev.advanceagro.net/ws/api/idms/authentication/?account=${encodeURIComponent(username)}&password=${encodeURIComponent(passwordMd5)}&Service=0000&AgentId=SystemMango&AgentCode=Np4kfRh5`;
 
         let data = null;
 
-        // Strategy 1: Direct browser call (works when user is on corporate network)
+        // Strategy 1: Local Proxy (Vercel rewrite in production, Vite proxy in development)
         try {
-            const res = await fetch(idmsUrl, {
+            console.log('Trying local proxy IDMS call...');
+            const res = await fetch(proxyIdmsUrl, {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' },
             });
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
             data = await res.json();
-        } catch (directErr) {
-            console.warn('Direct IDMS call failed, trying Edge Function proxy...', directErr.message);
+        } catch (proxyLocalErr) {
+            console.warn('Local proxy IDMS call failed, trying direct browser call...', proxyLocalErr.message);
 
-            // Strategy 2: Edge Function proxy (works when CORS blocks direct call)
+            // Strategy 2: Direct browser call (works when user is on corporate network/bypassing CORS)
             try {
-                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-                const res = await fetch(`${supabaseUrl}/functions/v1/idms-auth`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ account: username, password_md5: passwordMd5 }),
+                const res = await fetch(directIdmsUrl, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
                 });
                 data = await res.json();
-            } catch (proxyErr) {
-                console.error('Edge Function proxy also failed:', proxyErr.message);
-                throw new Error('ไม่สามารถเชื่อมต่อระบบยืนยันตัวตนได้');
+            } catch (directErr) {
+                console.warn('Direct IDMS call failed, trying Edge Function proxy...', directErr.message);
+
+                // Strategy 3: Edge Function proxy (fallback for other hosting setups)
+                try {
+                    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+                    const res = await fetch(`${supabaseUrl}/functions/v1/idms-auth`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ account: username, password_md5: passwordMd5 }),
+                    });
+                    data = await res.json();
+                } catch (proxyErr) {
+                    console.error('All authentication strategies failed:', proxyErr.message);
+                    throw new Error('ไม่สามารถเชื่อมต่อระบบยืนยันตัวตนได้');
+                }
             }
         }
 
