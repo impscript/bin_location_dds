@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 import { Printer, ArrowLeft, Loader2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 
 const MemoPrint = () => {
+    const { user } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const [memos, setMemos] = useState([]);
@@ -40,7 +42,11 @@ const MemoPrint = () => {
                 if (pendingIds.length > 0) {
                     await supabase
                         .from('premium_memos')
-                        .update({ status: 'printed', printed_at: new Date().toISOString() })
+                        .update({ 
+                            status: 'printed', 
+                            printed_at: new Date().toISOString(),
+                            printed_by: user?.id || null
+                        })
                         .in('id', pendingIds);
                 }
             } catch (err) {

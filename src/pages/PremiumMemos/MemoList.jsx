@@ -20,8 +20,14 @@ const STATUS_CONFIGS = {
 };
 
 const MemoList = () => {
-    const { user, hasPermission } = useAuth();
+    const { user, users, hasPermission } = useAuth();
     const navigate = useNavigate();
+
+    const getDisplayName = (userId) => {
+        if (!userId) return '';
+        const u = users.find(x => x.id === userId);
+        return u ? u.display_name : 'ผู้ใช้ทั่วไป/ปิดใช้งานแล้ว';
+    };
 
     // State for modals
     const [isImportOpen, setIsImportOpen] = useState(false);
@@ -168,6 +174,9 @@ const MemoList = () => {
         if (newStatus === 'shipped') {
             updateData.shipped_at = new Date().toISOString();
             updateData.shipped_by = user?.id || null;
+        } else if (newStatus === 'printed') {
+            updateData.printed_at = new Date().toISOString();
+            updateData.printed_by = user?.id || null;
         }
 
         try {
@@ -566,12 +575,24 @@ const MemoList = () => {
 
                                             {/* Status */}
                                             <td className="px-4 py-3 text-center">
-                                                <span className={clsx(
-                                                    "px-2.5 py-1 rounded-full border text-[10px] font-bold tracking-wide uppercase inline-block",
-                                                    statusConfig.color
-                                                )}>
-                                                    {statusConfig.label}
-                                                </span>
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <span className={clsx(
+                                                        "px-2.5 py-1 rounded-full border text-[10px] font-bold tracking-wide uppercase inline-block",
+                                                        statusConfig.color
+                                                    )}>
+                                                        {statusConfig.label}
+                                                    </span>
+                                                    {memo.status === 'printed' && memo.printed_by && (
+                                                        <span className="text-[10px] text-slate-400 block max-w-[120px] truncate" title={`ผู้พิมพ์: ${getDisplayName(memo.printed_by)}`}>
+                                                            โดย: {getDisplayName(memo.printed_by)}
+                                                        </span>
+                                                    )}
+                                                    {memo.status === 'shipped' && memo.shipped_by && (
+                                                        <span className="text-[10px] text-slate-400 block max-w-[120px] truncate" title={`ผู้ส่ง: ${getDisplayName(memo.shipped_by)}`}>
+                                                            โดย: {getDisplayName(memo.shipped_by)}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
 
                                             {/* Actions */}
