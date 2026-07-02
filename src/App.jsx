@@ -20,6 +20,8 @@ import ZoneCountView from './pages/StockCount/ZoneCountView';
 import StockCountReview from './pages/StockCount/StockCountReview';
 import StockCountReport from './pages/StockCount/StockCountReport';
 import StockCountHistory from './pages/StockCount/StockCountHistory';
+import MemoList from './pages/PremiumMemos/MemoList';
+import MemoPrint from './pages/PremiumMemos/MemoPrint';
 import { WarehouseProvider } from './context/WarehouseContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -91,6 +93,7 @@ function App() {
                                 <Route path="settings/zone-mappings" element={<ZoneMappingSettings />} />
                                 <Route path="activity-log" element={<ActivityLog />} />
                                 <Route path="low-stock" element={<LowStockPage />} />
+                                <Route path="premium-memos" element={<MemoList />} />
                                 <Route path="*" element={<Navigate to="/" replace />} />
                             </Route>
 
@@ -98,6 +101,13 @@ function App() {
                             <Route path="/print" element={
                                 <RequireAuth>
                                     <PrintPage />
+                                </RequireAuth>
+                            } />
+
+                            {/* Premium Memos Print page (protected) */}
+                            <Route path="/premium-memos/print" element={
+                                <RequireAuth>
+                                    <MemoPrint />
                                 </RequireAuth>
                             } />
                         </Routes>

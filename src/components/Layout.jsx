@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Package, Box, LogOut, Home, ClipboardList, ScanLine, Settings, Shield, Warehouse, Calculator } from 'lucide-react';
+import { Search, Package, Box, LogOut, Home, ClipboardList, ScanLine, Settings, Shield, Warehouse, Calculator, Gift } from 'lucide-react';
 import { useWarehouse } from '../context/WarehouseContext';
 import { useAuth } from '../context/AuthContext';
 import DataImportExport from './DataImportExport';
@@ -73,6 +73,7 @@ const Layout = () => {
     const bottomNavItems = [
         { path: '/', icon: Home, label: 'Home' },
         { path: '/stock-count', icon: ClipboardList, label: 'Stock' },
+        { path: '/premium-memos', icon: Gift, label: 'Gift' },
         { path: '/scan', icon: ScanLine, label: 'Scan' },
         { path: '/settings', icon: Settings, label: 'Settings' },
     ];
