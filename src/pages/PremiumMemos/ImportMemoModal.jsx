@@ -137,23 +137,41 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
         return clean;
     };
 
-    // Preview data with mapped columns
-    const previewRows = useMemo(() => {
+    // Consolidate all rows from the parsed data to handle duplicates gracefully
+    const processedRows = useMemo(() => {
         if (!isMapValid) return [];
-        return parsedData.slice(0, 10).map(row => {
+
+        const mapped = parsedData.map(row => {
             const rawCustomer = row[columnMap.customer] || '';
             const { code, name } = parseCustomer(rawCustomer);
             return {
                 etd_date: formatDate(row[columnMap.etd_date]) || row[columnMap.etd_date] || '',
-                if_number: row[columnMap.if_number] || '',
-                customer_code: code,
-                customer_name: name,
-                shipping_address: row[columnMap.shipping_address] || '',
-                item_name: row[columnMap.item_name] || '',
+                if_number: (row[columnMap.if_number] || '').trim(),
+                customer_code: code || null,
+                customer_name: name || 'ลูกค้าทั่วไป',
+                shipping_address: (row[columnMap.shipping_address] || '').trim(),
+                item_name: (row[columnMap.item_name] || '').trim(),
                 qty: parseInt(row[columnMap.qty]) || 1,
             };
-        });
+        }).filter(r => r.if_number && r.item_name && r.etd_date);
+
+        // Group by (if_number, item_name) and sum qty
+        const consolidatedMap = new Map();
+        for (const row of mapped) {
+            const key = `${row.if_number}::${row.item_name}`;
+            if (consolidatedMap.has(key)) {
+                consolidatedMap.get(key).qty += row.qty;
+            } else {
+                consolidatedMap.set(key, { ...row });
+            }
+        }
+        return Array.from(consolidatedMap.values());
     }, [parsedData, columnMap, isMapValid]);
+
+    // Preview data with mapped columns
+    const previewRows = useMemo(() => {
+        return processedRows.slice(0, 10);
+    }, [processedRows]);
 
     const BATCH_SIZE = 100;
 
@@ -163,33 +181,21 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
         setStep('importing');
 
         try {
-            // Map and format all rows
-            const rows = parsedData.map(row => {
-                const rawCustomer = row[columnMap.customer] || '';
-                const { code, name } = parseCustomer(rawCustomer);
-                return {
-                    etd_date: formatDate(row[columnMap.etd_date]),
-                    if_number: (row[columnMap.if_number] || '').trim(),
-                    customer_code: code || null,
-                    customer_name: name || 'ลูกค้าทั่วไป',
-                    shipping_address: (row[columnMap.shipping_address] || '').trim(),
-                    item_name: (row[columnMap.item_name] || '').trim(),
-                    qty: parseInt(row[columnMap.qty]) || 1,
-                    status: 'pending',
-                    created_by: user?.id || null,
-                };
-            }).filter(r => r.if_number && r.item_name && r.etd_date);
-
-            if (rows.length === 0) {
+            if (processedRows.length === 0) {
                 throw new Error('ไม่พบข้อมูลของแถมที่สามารถนำเข้าได้');
             }
 
-            const totalBatches = Math.ceil(rows.length / BATCH_SIZE);
+            const rowsToImport = processedRows.map(row => ({
+                ...row,
+                status: 'pending',
+                created_by: user?.id || null,
+            }));
+
+            const totalBatches = Math.ceil(rowsToImport.length / BATCH_SIZE);
             let importedCount = 0;
-            let updatedCount = 0;
 
             for (let i = 0; i < totalBatches; i++) {
-                const batch = rows.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+                const batch = rowsToImport.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
                 setImportResult({ progress: `Batch ${i + 1}/${totalBatches}`, pct: Math.round(((i + 1) / totalBatches) * 100) });
 
                 // Upsert to Supabase
@@ -203,9 +209,9 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
             }
 
             setImportResult({
-                total_rows: rows.length,
+                total_rows: rowsToImport.length,
                 success_count: importedCount,
-                errors_count: rows.length - importedCount
+                errors_count: rowsToImport.length - importedCount
             });
             setStep('done');
             toast.success(`นำเข้าของแถมสำเร็จทั้งหมด ${importedCount} รายการ!`);
@@ -374,7 +380,7 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
                     {step === 'importing' && (
                         <div className="text-center py-12">
                             <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-                            <p className="text-lg font-medium text-slate-700">กำลังนำเข้าของแถม {parsedData.length} รายการ...</p>
+                            <p className="text-lg font-medium text-slate-700">กำลังนำเข้าของแถม {processedRows.length} รายการ...</p>
                             {importResult?.progress && (
                                 <p className="text-sm text-blue-600 mt-2 font-medium">{importResult.progress} ({importResult.pct}%)</p>
                             )}
@@ -398,9 +404,14 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
                                     <span className="font-bold text-slate-800 text-lg">{importResult.success_count}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm border-t border-slate-200 pt-3">
-                                    <span className="text-slate-500 font-medium">คอลัมน์ข้อมูลทั้งหมด:</span>
-                                    <span className="font-semibold text-slate-700">{parsedData.length} รายการ</span>
+                                    <span className="text-slate-500 font-medium">จำนวนแถวทั้งหมดในไฟล์:</span>
+                                    <span className="font-semibold text-slate-700">{parsedData.length} แถว</span>
                                 </div>
+                                {parsedData.length !== importResult.success_count && (
+                                    <div className="text-xs text-amber-600 mt-2 font-medium">
+                                        * ระบบรวมรายการของแถมที่ซ้ำกันเรียบร้อยแล้ว
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -425,7 +436,7 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
                                 )}
                             >
                                 <FileUp className="w-4 h-4" />
-                                บันทึกข้อมูล {parsedData.length} รายการ
+                                บันทึกข้อมูล {processedRows.length} รายการ
                             </button>
                         </>
                     )}
