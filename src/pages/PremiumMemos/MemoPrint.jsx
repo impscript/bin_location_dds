@@ -12,7 +12,7 @@ const MemoPrint = () => {
     const navigate = useNavigate();
     const [memos, setMemos] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isCombined, setIsCombined] = useState(true); // Toggle mode: single page vs separate pages
+    const [isCombined, setIsCombined] = useState(false); // Toggle mode: single page vs separate pages
 
     const ids = new URLSearchParams(location.search).get('ids')?.split(',').filter(Boolean) || [];
 
@@ -145,7 +145,7 @@ const MemoPrint = () => {
         return (
             <div className="flex-1 flex w-full h-full">
                 {/* Left Panel (Details & Item Table) - 68% Width */}
-                <div className="w-[68%] pr-6 flex flex-col justify-between h-full py-1">
+                <div className="w-[68%] pr-6 flex flex-col h-full py-1">
                     <div className="space-y-2">
                         {/* Top Title/Address */}
                         <div className="flex justify-between items-start border-b border-slate-200 pb-1">
@@ -209,22 +209,86 @@ const MemoPrint = () => {
                     </div>
 
                     {/* Bottom Sign-off (Receiver and Sender) */}
-                    <div className={`${combinedMode ? 'space-y-2 mt-2' : 'space-y-6 mt-8'}`}>
-                        <div className={`grid grid-cols-2 gap-4 ${textSign} text-slate-600`}>
-                            <div className="space-y-0.5">
-                                <p>ลงชื่อ .............................................................. ผู้รับ</p>
-                                <p>(&nbsp;&nbsp;..................................................................&nbsp;&nbsp;)</p>
-                                <p>{combinedMode ? 'ตำแหน่ง ............................. วันที่ .............................' : 'ตำแหน่ง ...........................................................'}</p>
-                                {!combinedMode && <p>วันที่ ................................................................</p>}
+                    <div className={clsx(
+                        "w-full",
+                        combinedMode ? "mt-auto pt-2" : "mt-12 mb-auto"
+                    )}>
+                        <div className={combinedMode ? "grid grid-cols-2 gap-4" : "flex flex-col gap-3"}>
+                            {/* Section 1: ผู้รับสินค้า */}
+                            <div className={clsx(
+                                "border border-slate-300 rounded-lg bg-slate-50/10 shadow-sm",
+                                combinedMode ? "p-1.5 space-y-1" : "p-3 space-y-2"
+                            )}>
+                                <div className={clsx(
+                                    "font-bold text-slate-800 border-b border-slate-200 pb-0.5 flex justify-between items-center",
+                                    combinedMode ? "text-[8px] mb-0.5" : "text-[10px] mb-1.5"
+                                )}>
+                                    <span>ผู้รับสินค้า / Receiver</span>
+                                </div>
+                                <div className={clsx("space-y-1.5 text-slate-600", textSign)}>
+                                    <div className="flex items-end gap-1">
+                                        <span className="shrink-0">ลงชื่อ</span>
+                                        <div className="flex-1 border-b border-dotted border-slate-400 min-h-[14px]"></div>
+                                        <span className="shrink-0 font-medium">ผู้รับ</span>
+                                    </div>
+                                    <div className="flex items-end gap-1">
+                                        <span className="shrink-0">(</span>
+                                        <div className="flex-1 border-b border-dotted border-slate-400 min-h-[14px]"></div>
+                                        <span className="shrink-0">)</span>
+                                    </div>
+                                    <div className="flex items-end gap-1">
+                                        <span className="shrink-0">ตำแหน่ง</span>
+                                        <div className="flex-1 border-b border-dotted border-slate-400 min-h-[14px]"></div>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="space-y-0.5">
-                                <p>ลงชื่อ .............................................................. ผู้ส่ง</p>
-                                <p>(&nbsp;&nbsp;..................................................................&nbsp;&nbsp;)</p>
-                                <p>วันที่ ................................................................</p>
+
+                            {/* Section 2: ผู้ส่งสินค้า */}
+                            <div className={clsx(
+                                "border border-slate-300 rounded-lg bg-slate-50/10 shadow-sm",
+                                combinedMode ? "p-1.5 space-y-1" : "p-3 space-y-2"
+                            )}>
+                                <div className={clsx(
+                                    "font-bold text-slate-800 border-b border-slate-200 pb-0.5 flex justify-between items-center",
+                                    combinedMode ? "text-[8px] mb-0.5" : "text-[10px] mb-1.5"
+                                )}>
+                                    <span>ผู้ส่งสินค้า / Sender</span>
+                                </div>
+                                <div className={clsx("space-y-1.5 text-slate-600", textSign)}>
+                                    <div className="flex items-end gap-1">
+                                        <span className="shrink-0">ลงชื่อ</span>
+                                        <div className="flex-1 border-b border-dotted border-slate-400 min-h-[14px] px-1 text-center font-bold text-slate-800 relative">
+                                            <span className={clsx("font-semibold relative -top-0.5", combinedMode ? "text-[10px]" : "text-[12px]")}>นฤมล</span>
+                                        </div>
+                                        <span className="shrink-0 font-medium">ผู้ส่ง</span>
+                                    </div>
+                                    <div className="flex items-end gap-1">
+                                        <span className="shrink-0">(</span>
+                                        <div className="flex-1 border-b border-dotted border-slate-400 min-h-[14px] px-1 text-center text-slate-800">
+                                            นฤมล
+                                        </div>
+                                        <span className="shrink-0">)</span>
+                                    </div>
+                                    <div className="flex items-end gap-1">
+                                        <span className="shrink-0">ตำแหน่ง</span>
+                                        <div className="flex-1 border-b border-dotted border-slate-400 min-h-[14px] px-1 text-center text-slate-500">
+                                            เจ้าหน้าที่คลังสินค้า
+                                        </div>
+                                    </div>
+                                    <div className="flex items-end gap-1">
+                                        <span className="shrink-0">วันที่</span>
+                                        <div className="flex-1 border-b border-dotted border-slate-400 min-h-[14px] px-1 text-center font-bold text-slate-800">
+                                            {formatDateThai(memo.etd_date)}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         {/* Note footer */}
-                        <div className={`border-t border-slate-200 pt-1 flex justify-between items-center ${combinedMode ? 'text-[8px]' : 'text-[10px]'} text-slate-400 font-medium`}>
+                        <div className={clsx(
+                            "border-t border-slate-200 pt-1 flex justify-between items-center text-slate-400 font-medium mt-auto",
+                            combinedMode ? "text-[8px]" : "text-[10px]"
+                        )}>
                             <span>* มีปัญหาด้านการจัดส่งสินค้าติดต่อ คุณสมใจ 085-835-3519</span>
                             <span className="font-mono text-[7px]">DDS Premium Set</span>
                         </div>

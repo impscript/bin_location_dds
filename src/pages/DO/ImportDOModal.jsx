@@ -7,34 +7,41 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 
-const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
+const ImportDOModal = ({ isOpen, onClose, onSuccess }) => {
     const { user } = useAuth();
     const [file, setFile] = useState(null);
     const [parsedData, setParsedData] = useState([]);
     const [headers, setHeaders] = useState([]);
-    const [step, setStep] = useState('upload'); // upload, preview, importing, done
+    const [step, setStep] = useState('upload');
     const [importResult, setImportResult] = useState(null);
     const [dragOver, setDragOver] = useState(false);
     const [importing, setImporting] = useState(false);
 
-    // Column mapping configuration
     const [columnMap, setColumnMap] = useState({
-        etd_date: '',
-        if_number: '',
-        customer: '',
+        document_number: '',
+        document_date: '',
+        purchase_order_no: '',
+        reference_no: '',
+        customer_name: '',
         shipping_address: '',
+        product_code: '',
         item_name: '',
+        unit: '',
         qty: '',
     });
 
-    const requiredFields = ['etd_date', 'if_number', 'customer', 'item_name', 'qty'];
+    const requiredFields = ['document_number', 'document_date', 'customer_name', 'item_name', 'qty'];
     const fieldLabels = {
-        etd_date: 'ETD Date *',
-        if_number: 'IF Number *',
-        customer: 'Ship to Customer *',
-        shipping_address: 'Shipping Address',
-        item_name: 'Item Name *',
-        qty: 'Quantity *',
+        document_number: 'เลขที่ *',
+        document_date: 'วันที่ *',
+        purchase_order_no: 'เลขที่ใบสั่งซื้อ',
+        reference_no: 'เลขที่อ้างอิง',
+        customer_name: 'ชื่อลูกค้า *',
+        shipping_address: 'สถานที่ส่ง',
+        product_code: 'รหัสสินค้า',
+        item_name: 'รายการสินค้า *',
+        unit: 'หน่วย',
+        qty: 'จำนวน *',
     };
 
     const processData = (data, fields) => {
@@ -43,12 +50,16 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
 
         const autoMap = {};
         const fieldAliases = {
-            etd_date: ['etd_date', 'etddate', 'etd date', 'วันที่', 'delivery_date', 'date'],
-            if_number: ['if_number', 'ifnumber', 'if number', 'เลขที่เอกสาร', 'if no', 'document_no', 'invoice_no'],
-            customer: ['customer', 'ship_to_customer', 'ship to customer', 'ลูกค้า', 'ชื่อลูกค้า', 'customer_name'],
-            shipping_address: ['shipping_address', 'shipping address', 'ที่อยู่', 'ที่อยู่จัดส่ง', 'address'],
-            item_name: ['item_name', 'item name', 'รายการ', 'ของแถม', 'ของโปรโมชั่น', 'product_name'],
-            qty: ['qty', 'quantity', 'จำนวน', 'quantity in transaction units', 'quantity_in_transaction_units', 'amount'],
+            document_number: ['เลขที่', 'เลขที่ใบส่งสินค้า', 'document_number', 'document no', 'do no', 'เลขที่เอกสาร'],
+            document_date: ['วันที่', 'date', 'document_date', 'วันที่เอกสาร', 'วันที่ส่ง', 'delivery_date'],
+            purchase_order_no: ['เลขที่ใบสั่งซื้อ', 'po no', 'purchase_order_no', 'เลขที่ po', 'po_number', 'ใบสั่งซื้อ'],
+            reference_no: ['เลขที่อ้างอิง', 'reference_no', 'reference no', 'อ้างอิง', 'ref no'],
+            customer_name: ['ชื่อลูกค้า', 'ลูกค้า', 'customer', 'customer_name', 'ship to', 'ชื่อ'],
+            shipping_address: ['สถานที่ส่ง', 'ที่อยู่', 'ที่อยู่จัดส่ง', 'shipping_address', 'address', 'สถานที่'],
+            product_code: ['รหัสสินค้า', 'product_code', 'product code', 'รหัส', 'code', 'item code'],
+            item_name: ['รายการสินค้า', 'รายการ', 'item_name', 'item', 'product_name', 'สินค้า', 'description'],
+            unit: ['หน่วย', 'unit', 'uom', 'หน่วยนับ'],
+            qty: ['จำนวน', 'qty', 'quantity', 'amount', 'จำนวนสินค้า'],
         };
 
         for (const [field, aliases] of Object.entries(fieldAliases)) {
@@ -109,23 +120,9 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
 
     const isMapValid = requiredFields.every(f => columnMap[f]);
 
-    // Parse customer string to extract customer code and name
-    const parseCustomer = (customerStr) => {
-        if (!customerStr) return { code: '', name: '' };
-        const cleanStr = customerStr.trim();
-        // Match code patterns like CDOZ000975
-        const match = cleanStr.match(/^(CDOZ\d+|[A-Z0-9]+)\s+(.+)$/i);
-        if (match) {
-            return { code: match[1], name: match[2] };
-        }
-        return { code: '', name: cleanStr };
-    };
-
-    // Format date string from DD/MM/YYYY or DD.MM.YYYY to YYYY-MM-DD
     const formatDate = (dateStr) => {
         if (!dateStr) return '';
         const clean = dateStr.trim();
-        // Match DD/MM/YYYY or D/M/YYYY or DD-MM-YYYY
         const dmyMatch = clean.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/);
         if (dmyMatch) {
             const day = dmyMatch[1].padStart(2, '0');
@@ -133,23 +130,36 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
             const year = dmyMatch[3];
             return `${year}-${month}-${day}`;
         }
-        // Fallback or if already YYYY-MM-DD
         return clean;
     };
 
-    // Preview data with mapped columns
+    const parseCustomer = (customerStr) => {
+        if (!customerStr) return { code: '', name: '' };
+        const cleanStr = customerStr.trim();
+        // Match patterns like "CDOZ007649 ร้านกรุงปลูกเทพ"
+        const match = cleanStr.match(/^([A-Z0-9]+)\s+(.+)$/);
+        if (match) {
+            return { code: match[1], name: match[2] };
+        }
+        return { code: '', name: cleanStr };
+    };
+
     const previewRows = useMemo(() => {
         if (!isMapValid) return [];
         return parsedData.slice(0, 10).map(row => {
-            const rawCustomer = row[columnMap.customer] || '';
+            const rawCustomer = row[columnMap.customer_name] || '';
             const { code, name } = parseCustomer(rawCustomer);
             return {
-                etd_date: formatDate(row[columnMap.etd_date]) || row[columnMap.etd_date] || '',
-                if_number: row[columnMap.if_number] || '',
+                document_number: row[columnMap.document_number] || '',
+                document_date: formatDate(row[columnMap.document_date]) || row[columnMap.document_date] || '',
+                purchase_order_no: row[columnMap.purchase_order_no] || '',
+                reference_no: row[columnMap.reference_no] || '',
                 customer_code: code,
                 customer_name: name,
                 shipping_address: row[columnMap.shipping_address] || '',
+                product_code: row[columnMap.product_code] || '',
                 item_name: row[columnMap.item_name] || '',
+                unit: row[columnMap.unit] || 'EA',
                 qty: parseInt(row[columnMap.qty]) || 1,
             };
         });
@@ -163,39 +173,40 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
         setStep('importing');
 
         try {
-            // Map and format all rows
             const rows = parsedData.map(row => {
-                const rawCustomer = row[columnMap.customer] || '';
+                const rawCustomer = row[columnMap.customer_name] || '';
                 const { code, name } = parseCustomer(rawCustomer);
                 return {
-                    etd_date: formatDate(row[columnMap.etd_date]),
-                    if_number: (row[columnMap.if_number] || '').trim(),
+                    document_date: formatDate(row[columnMap.document_date]),
+                    document_number: (row[columnMap.document_number] || '').trim(),
+                    purchase_order_no: (row[columnMap.purchase_order_no] || '').trim() || null,
+                    reference_no: (row[columnMap.reference_no] || '').trim() || null,
                     customer_code: code || null,
                     customer_name: name || 'ลูกค้าทั่วไป',
                     shipping_address: (row[columnMap.shipping_address] || '').trim(),
+                    product_code: (row[columnMap.product_code] || '').trim() || null,
                     item_name: (row[columnMap.item_name] || '').trim(),
+                    unit: (row[columnMap.unit] || '').trim() || 'EA',
                     qty: parseInt(row[columnMap.qty]) || 1,
                     status: 'pending',
                     created_by: user?.id || null,
                 };
-            }).filter(r => r.if_number && r.item_name && r.etd_date);
+            }).filter(r => r.document_number && r.item_name && r.document_date);
 
             if (rows.length === 0) {
-                throw new Error('ไม่พบข้อมูลของแถมที่สามารถนำเข้าได้');
+                throw new Error('ไม่พบข้อมูลใบส่งสินค้าที่สามารถนำเข้าได้');
             }
 
             const totalBatches = Math.ceil(rows.length / BATCH_SIZE);
             let importedCount = 0;
-            let updatedCount = 0;
 
             for (let i = 0; i < totalBatches; i++) {
                 const batch = rows.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
                 setImportResult({ progress: `Batch ${i + 1}/${totalBatches}`, pct: Math.round(((i + 1) / totalBatches) * 100) });
 
-                // Upsert to Supabase
                 const { data, error } = await supabase
-                    .from('premium_memos')
-                    .upsert(batch, { onConflict: 'if_number,item_name' })
+                    .from('delivery_orders')
+                    .upsert(batch)
                     .select();
 
                 if (error) throw error;
@@ -208,10 +219,10 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
                 errors_count: rows.length - importedCount
             });
             setStep('done');
-            toast.success(`นำเข้าของแถมสำเร็จทั้งหมด ${importedCount} รายการ!`);
+            toast.success(`นำเข้าใบส่งสินค้าสำเร็จทั้งหมด ${importedCount} รายการ!`);
             onSuccess?.();
         } catch (err) {
-            console.error('Import premium memos error:', err);
+            console.error('Import delivery orders error:', err);
             toast.error('การนำเข้าล้มเหลว: ' + err.message);
             setStep('preview');
         } finally {
@@ -220,12 +231,12 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
     };
 
     const handleDownloadTemplate = () => {
-        const template = 'ETD Date,IF Number,Ship to Customer,Shipping Address,Item Name,Quantity in Transaction Units\n2/7/2026,IFS-DS-260600901,CDOZ000975 บริษัท ยูเนียนเปเปอร์คาร์ตอนส์ จำกัด (สำนักงานใหญ่),เลขที่ 4 ซ.เอกชัย 78 แขวงคลองบางพราน เขตบางบอน กรุงเทพมหานคร 10150,Premium : พัดลมพกพา (สีเขียว) P.24,3\n';
-        const blob = new Blob(['\ufeff' + template], { type: 'text/csv;charset=utf-8' });
+        const template = '\uFEFFเลขที่,วันที่,เลขที่ใบสั่งซื้อ,เลขที่อ้างอิง,ชื่อลูกค้า,สถานที่ส่ง,รหัสสินค้า,รายการสินค้า,หน่วย,จำนวน\nDO-2607001,2/7/2026,PO-2026-001,REF-001,บริษัท ตัวอย่าง จำกัด,เลขที่ 4 ซ.เอกชัย 78 กรุงเทพมหานคร,C06110010,แฟ้มสันกว้าง ช้าง 120 A4 3\" ดำ,EA,10\n';
+        const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'premium_import_template.csv';
+        a.download = 'do_import_template.csv';
         a.click();
         URL.revokeObjectURL(url);
     };
@@ -237,7 +248,7 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
         setHeaders([]);
         setStep('upload');
         setImportResult(null);
-        setColumnMap({ etd_date: '', if_number: '', customer: '', shipping_address: '', item_name: '', qty: '' });
+        setColumnMap({ document_number: '', document_date: '', purchase_order_no: '', reference_no: '', customer_name: '', shipping_address: '', product_code: '', item_name: '', unit: '', qty: '' });
         onClose();
     };
 
@@ -246,12 +257,11 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
     return (
         <div className="fixed inset-0 bg-black/55 z-55 flex items-center justify-center p-4" onClick={handleClose}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-                {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
                     <div>
-                        <h2 className="text-lg font-bold text-slate-800">นำเข้าข้อมูล Memo ของแถม</h2>
+                        <h2 className="text-lg font-bold text-slate-800">นำเข้าข้อมูลใบส่งสินค้า (DO)</h2>
                         <p className="text-sm text-slate-500">
-                            {step === 'upload' && 'เลือกไฟล์ CSV ของแถมเพื่อนำเข้าและจัดเตรียมพิมพ์ใบของแถม'}
+                            {step === 'upload' && 'เลือกไฟล์ CSV ใบส่งสินค้าเพื่อนำเข้าและจัดเตรียมพิมพ์'}
                             {step === 'preview' && `พบข้อมูลทั้งหมด ${parsedData.length} แถว — กรุณาตั้งค่าความสอดคล้องของคอลัมน์ (Column Mapping)`}
                             {step === 'importing' && 'กำลังเขียนข้อมูลลงฐานข้อมูล...'}
                             {step === 'done' && 'การนำเข้าเสร็จสิ้น!'}
@@ -262,9 +272,7 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
                     </button>
                 </div>
 
-                {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6">
-                    {/* Step 1: Upload */}
                     {step === 'upload' && (
                         <div className="space-y-4">
                             <div
@@ -275,13 +283,13 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
                                     "border-2 border-dashed rounded-2xl p-12 text-center transition cursor-pointer",
                                     dragOver ? "border-blue-500 bg-blue-50" : "border-slate-300 hover:border-blue-400 hover:bg-slate-50"
                                 )}
-                                onClick={() => document.getElementById('csv-input').click()}
+                                onClick={() => document.getElementById('do-csv-input').click()}
                             >
                                 <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
                                 <p className="text-lg font-medium text-slate-700">ลาก CSV ไฟล์มาวางที่นี่</p>
                                 <p className="text-sm text-slate-500 mt-1">หรือคลิกเพื่อเลือกไฟล์จากเครื่องคอมพิวเตอร์</p>
                                 <input
-                                    id="csv-input"
+                                    id="do-csv-input"
                                     type="file"
                                     accept=".csv,.txt,.xlsx,.xls"
                                     className="hidden"
@@ -291,16 +299,14 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
                             <div className="flex justify-center">
                                 <button onClick={handleDownloadTemplate} className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 transition">
                                     <Download className="w-4 h-4" />
-                                    ดาวน์โหลดเทมเพลตตัวอย่างไฟล์ของแถม (.csv)
+                                    ดาวน์โหลดเทมเพลตตัวอย่างไฟล์ใบส่งสินค้า (.csv)
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    {/* Step 2: Preview & Mapping */}
                     {step === 'preview' && (
                         <div className="space-y-6">
-                            {/* Column Mapping */}
                             <div>
                                 <h3 className="font-semibold text-slate-800 mb-3">คอลัมน์จากไฟล์อัปโหลด</h3>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -333,7 +339,6 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
                                 )}
                             </div>
 
-                            {/* Preview Table */}
                             {isMapValid && (
                                 <div>
                                     <h3 className="font-semibold text-slate-800 mb-3">
@@ -343,23 +348,25 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
                                         <table className="w-full text-sm border-collapse">
                                             <thead className="bg-slate-50 text-xs text-slate-500 font-bold uppercase border-b border-slate-200">
                                                 <tr>
-                                                    <th className="px-4 py-3 text-left">ETD Date</th>
-                                                    <th className="px-4 py-3 text-left">IF Number</th>
-                                                    <th className="px-4 py-3 text-left">Customer Code</th>
-                                                    <th className="px-4 py-3 text-left">Customer Name</th>
-                                                    <th className="px-4 py-3 text-left">Item Name</th>
-                                                    <th className="px-4 py-3 text-right">Qty</th>
+                                                    <th className="px-3 py-2.5 text-left">เลขที่</th>
+                                                    <th className="px-3 py-2.5 text-left">วันที่</th>
+                                                    <th className="px-3 py-2.5 text-left">PO No</th>
+                                                    <th className="px-3 py-2.5 text-left">ลูกค้า</th>
+                                                    <th className="px-3 py-2.5 text-left">สินค้า</th>
+                                                    <th className="px-3 py-2.5 text-center">หน่วย</th>
+                                                    <th className="px-3 py-2.5 text-right">จำนวน</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100 bg-white">
                                                 {previewRows.map((row, i) => (
                                                     <tr key={i} className="hover:bg-slate-50/55 transition">
-                                                        <td className="px-4 py-2.5 font-mono text-xs text-slate-600">{row.etd_date}</td>
-                                                        <td className="px-4 py-2.5 font-mono text-xs text-slate-800 font-medium">{row.if_number}</td>
-                                                        <td className="px-4 py-2.5 font-mono text-xs text-blue-600">{row.customer_code || '-'}</td>
-                                                        <td className="px-4 py-2.5 max-w-[200px] truncate text-slate-700">{row.customer_name}</td>
-                                                        <td className="px-4 py-2.5 max-w-[200px] truncate text-slate-700 font-medium">{row.item_name}</td>
-                                                        <td className="px-4 py-2.5 text-right font-semibold text-slate-800">{row.qty}</td>
+                                                        <td className="px-3 py-2 font-mono text-xs text-slate-800 font-medium">{row.document_number}</td>
+                                                        <td className="px-3 py-2 font-mono text-xs text-slate-600">{row.document_date}</td>
+                                                        <td className="px-3 py-2 font-mono text-xs text-slate-500">{row.purchase_order_no || '-'}</td>
+                                                        <td className="px-3 py-2 max-w-[160px] truncate text-slate-700">{row.customer_name}</td>
+                                                        <td className="px-3 py-2 max-w-[160px] truncate text-slate-700 font-medium">{row.item_name}</td>
+                                                        <td className="px-3 py-2 text-center text-slate-500">{row.unit}</td>
+                                                        <td className="px-3 py-2 text-right font-semibold text-slate-800">{row.qty}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -370,27 +377,25 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
                         </div>
                     )}
 
-                    {/* Step 3: Importing */}
                     {step === 'importing' && (
                         <div className="text-center py-12">
                             <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-                            <p className="text-lg font-medium text-slate-700">กำลังนำเข้าของแถม {parsedData.length} รายการ...</p>
+                            <p className="text-lg font-medium text-slate-700">กำลังนำเข้าใบส่งสินค้า {parsedData.length} รายการ...</p>
                             {importResult?.progress && (
                                 <p className="text-sm text-blue-600 mt-2 font-medium">{importResult.progress} ({importResult.pct}%)</p>
                             )}
-                            <p className="text-sm text-slate-500 mt-1">กำลังบันทึกข้อมูลเพื่อความเสถียร กรุณาอย่าปิดหน้าต่างนี้</p>
+                            <p className="text-sm text-slate-500 mt-1">กำลังบันทึกข้อมูล กรุณาอย่าปิดหน้าต่างนี้</p>
                         </div>
                     )}
 
-                    {/* Step 4: Done */}
                     {step === 'done' && importResult && (
                         <div className="text-center py-8 space-y-6">
                             <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
                                 <Check className="w-8 h-8 text-emerald-600" />
-                             </div>
+                            </div>
                             <div>
                                 <h3 className="text-xl font-bold text-slate-800">นำเข้าข้อมูลสำเร็จแล้ว!</h3>
-                                <p className="text-sm text-slate-500 mt-1">ข้อมูลของแถมพร้อมสำหรับการค้นหาและพิมพ์แล้ว</p>
+                                <p className="text-sm text-slate-500 mt-1">ข้อมูลใบส่งสินค้าพร้อมสำหรับการค้นหาและพิมพ์แล้ว</p>
                             </div>
                             <div className="max-w-md mx-auto bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
                                 <div className="flex justify-between items-center text-sm">
@@ -406,7 +411,6 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
                     )}
                 </div>
 
-                {/* Footer */}
                 <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
                     {step === 'preview' && (
                         <>
@@ -440,4 +444,4 @@ const ImportMemoModal = ({ isOpen, onClose, onSuccess }) => {
     );
 };
 
-export default ImportMemoModal;
+export default ImportDOModal;

@@ -1,45 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Warehouse, Shield, Calculator, LogIn, Loader2, Eye, EyeOff, AlertCircle, ChevronDown, ChevronUp, User, Lock } from 'lucide-react';
-
-const ROLE_CONFIG = {
-    admin: {
-        icon: Shield,
-        color: 'text-red-400',
-        bgColor: 'bg-red-500/10 border-red-500/30',
-        hoverBg: 'hover:bg-red-500/20',
-        label: 'ผู้ดูแลระบบ',
-        desc: 'เข้าถึงทุกฟีเจอร์ จัดการระบบ',
-    },
-    wh_admin: {
-        icon: Shield,
-        color: 'text-amber-400',
-        bgColor: 'bg-amber-500/10 border-amber-500/30',
-        hoverBg: 'hover:bg-amber-500/20',
-        label: 'หัวหน้าคลัง',
-        desc: 'สร้างรอบนับ, จัดการ Stock Count',
-    },
-    warehouse: {
-        icon: Warehouse,
-        color: 'text-green-400',
-        bgColor: 'bg-green-500/10 border-green-500/30',
-        hoverBg: 'hover:bg-green-500/20',
-        label: 'คลังสินค้า',
-        desc: 'นับ Stock, ย้าย Location, CRUD',
-    },
-    accounting: {
-        icon: Calculator,
-        color: 'text-blue-400',
-        bgColor: 'bg-blue-500/10 border-blue-500/30',
-        hoverBg: 'hover:bg-blue-500/20',
-        label: 'บัญชี',
-        desc: 'ดูรายงาน, Export ข้อมูล',
-    },
-};
+import { Warehouse, LogIn, Loader2, Eye, EyeOff, AlertCircle, User, Lock } from 'lucide-react';
 
 export default function LoginPage() {
-    const { users, login, loginWithCredentials, loading } = useAuth();
-    const [selectedUser, setSelectedUser] = useState(null);
+    const { loginWithCredentials, loading } = useAuth();
 
     // Credential login state
     const [username, setUsername] = useState('');
@@ -47,9 +11,6 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [loginLoading, setLoginLoading] = useState(false);
     const [error, setError] = useState('');
-
-    // Dev login toggle
-    const [showDevLogin, setShowDevLogin] = useState(false);
 
     const handleCredentialLogin = async (e) => {
         e.preventDefault();
@@ -79,12 +40,6 @@ export default function LoginPage() {
             }
         } finally {
             setLoginLoading(false);
-        }
-    };
-
-    const handleDevLogin = () => {
-        if (selectedUser) {
-            login(selectedUser);
         }
     };
 
@@ -183,69 +138,7 @@ export default function LoginPage() {
                     </form>
                 </div>
 
-                {/* Dev Login Section */}
-                <div className="mt-6">
-                    <button
-                        onClick={() => setShowDevLogin(!showDevLogin)}
-                        className="w-full flex items-center justify-center gap-2 text-xs text-gray-600 hover:text-gray-400 transition-colors py-2"
-                    >
-                        {showDevLogin ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                        Quick Login (Dev)
-                    </button>
 
-                    {showDevLogin && (
-                        <div className="bg-gray-900/50 rounded-2xl border border-gray-800/50 p-4 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <p className="text-xs text-gray-500 mb-3">เลือกผู้ใช้งาน</p>
-                            <div className="space-y-2">
-                                {users.map((u) => {
-                                    const config = ROLE_CONFIG[u.role] || ROLE_CONFIG.warehouse;
-                                    const Icon = config.icon;
-                                    const isSelected = selectedUser?.id === u.id;
-
-                                    return (
-                                        <button
-                                            key={u.id}
-                                            onClick={() => setSelectedUser(u)}
-                                            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 text-left text-sm ${isSelected
-                                                ? `${config.bgColor} ring-1 ring-offset-0`
-                                                : `bg-gray-800/30 border-gray-700/30 ${config.hoverBg}`
-                                                }`}
-                                        >
-                                            <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${config.bgColor}`}>
-                                                <Icon className={`w-4 h-4 ${config.color}`} />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <span className="text-white font-medium text-sm">{u.display_name}</span>
-                                                <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${config.bgColor} ${config.color}`}>
-                                                    {config.label}
-                                                </span>
-                                            </div>
-                                            {isSelected && (
-                                                <div className={`w-4 h-4 rounded-full border-2 ${config.color.replace('text-', 'border-')} flex items-center justify-center`}>
-                                                    <div className={`w-2 h-2 rounded-full ${config.color.replace('text-', 'bg-')}`} />
-                                                </div>
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {users.length > 0 && (
-                                <button
-                                    onClick={handleDevLogin}
-                                    disabled={!selectedUser}
-                                    className={`w-full mt-3 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${selectedUser
-                                        ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                                        : 'bg-gray-800/50 text-gray-600 cursor-not-allowed'
-                                        }`}
-                                >
-                                    <LogIn className="w-3.5 h-3.5" />
-                                    เข้าสู่ระบบ (Dev)
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </div>
 
                 {/* Footer */}
                 <p className="text-center text-xs text-gray-600 mt-6">

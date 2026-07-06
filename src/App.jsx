@@ -22,6 +22,8 @@ import StockCountReport from './pages/StockCount/StockCountReport';
 import StockCountHistory from './pages/StockCount/StockCountHistory';
 import MemoList from './pages/PremiumMemos/MemoList';
 import MemoPrint from './pages/PremiumMemos/MemoPrint';
+import DOList from './pages/DO/DOList';
+import DOPrint from './pages/DO/DOPrint';
 import { WarehouseProvider } from './context/WarehouseContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -94,6 +96,7 @@ function App() {
                                 <Route path="activity-log" element={<ActivityLog />} />
                                 <Route path="low-stock" element={<LowStockPage />} />
                                 <Route path="premium-memos" element={<MemoList />} />
+                                <Route path="do" element={<DOList />} />
                                 <Route path="*" element={<Navigate to="/" replace />} />
                             </Route>
 
@@ -108,6 +111,13 @@ function App() {
                             <Route path="/premium-memos/print" element={
                                 <RequireAuth>
                                     <MemoPrint />
+                                </RequireAuth>
+                            } />
+
+                            {/* DO Print page (protected) */}
+                            <Route path="/do/print" element={
+                                <RequireAuth>
+                                    <DOPrint />
                                 </RequireAuth>
                             } />
                         </Routes>
