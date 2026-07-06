@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS public.delivery_orders (
     document_date date NOT NULL,
     purchase_order_no text,
     reference_no text,
+    customer_code text,
     customer_name text NOT NULL,
     shipping_address text NOT NULL,
     product_code text,
