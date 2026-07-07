@@ -151,8 +151,13 @@ const DOPrint = () => {
     const renderPartContent = (orderGroup, part, combinedMode) => {
         const textSize = combinedMode ? 'text-xs' : 'text-sm';
         const headerSize = combinedMode ? 'text-lg' : 'text-2xl';
-        const padding = combinedMode ? 'p-3' : 'p-6';
-        const spacing = combinedMode ? 'space-y-2' : 'space-y-4';
+
+        const itemsCount = orderGroup.length;
+        const isCompact = itemsCount > 4;
+        const isVeryCompact = itemsCount > 8;
+
+        const padding = isCompact ? 'p-4 print:p-2' : (combinedMode ? 'p-3' : 'p-6 print:p-3');
+        const spacing = isCompact ? 'space-y-2 print:space-y-1' : (combinedMode ? 'space-y-2' : 'space-y-4 print:space-y-2');
 
         // orderGroup is an array of orders with same document_number
         const firstOrder = orderGroup[0];
@@ -165,12 +170,12 @@ const DOPrint = () => {
         const displayCustomerName = custMatch ? custMatch[2] : rawCustomerName;
 
         return (
-            <div className={`w-full h-full ${padding} ${spacing} bg-white font-['Sarabun']`}>
+            <div className={`w-full h-full ${padding} ${spacing} bg-white font-sans`}>
                 {/* Header Section */}
                 <div className="flex justify-between items-start border-b-2 border-black pb-2">
                     {/* Left: Logo only */}
                     <div className="flex items-center">
-                        <div className="relative w-40 h-20">
+                        <div className={`relative ${isCompact ? 'w-32 h-14' : 'w-40 h-20'}`}>
                             <img 
                                 src="/images/dds-logo.png" 
                                 alt="DDS Logo"
@@ -188,79 +193,92 @@ const DOPrint = () => {
                     </div>
                     
                     {/* Right: Document Type */}
-                    <div className={`${part.badgeColor} px-4 py-2 rounded font-bold text-center`}>
+                    <div className={`${part.badgeColor} ${isCompact ? 'px-3 py-1 text-xs' : 'px-4 py-2'} rounded font-bold text-center`}>
                         <div className="text-sm">{part.title}</div>
                     </div>
                 </div>
 
                 {/* Company Name & Address */}
-                <div className="text-sm font-bold text-slate-800 mt-1">
-                    บริษัท ดั๊บเบิ้ล เอ ดิจิตอล ซินเนอร์จี จำกัด
-                </div>
-                <div className="text-xs text-gray-600">
-                    เลขที่ 47/2 หมู่ที่ 1 แขวงพระโขนง เขตคลองเตย จังหวัด กรุงเทพมหานคร 10110
-                </div>
-                <div className="text-xs text-gray-600 mb-2">
-                    เลขประจำตัวผู้เสียภาษี 0245547000297 (สาขาที่ 2)
+                <div className="space-y-0.5 mt-1">
+                    <div className="text-sm font-bold text-slate-800 leading-normal">
+                        บริษัท ดั๊บเบิ้ล เอ ดิจิตอล ซินเนอร์จี จำกัด
+                    </div>
+                    <div className="text-xs text-slate-500 font-medium leading-normal">
+                        เลขที่ 47/2 หมู่ที่ 1 แขวงพระโขนง เขตคลองเตย กรุงเทพมหานคร 10110
+                    </div>
+                    <div className="text-xs text-slate-500 font-medium leading-normal">
+                        เลขประจำตัวผู้เสียภาษี 0245547000297 (สาขาที่ 2)
+                    </div>
                 </div>
 
-                {/* Info Boxes Row */}
-                <div className="flex gap-4 mb-4">
-                    {/* Left Yellow Boxes */}
-                    <div className="flex gap-2">
-                        <div className="bg-yellow-200 px-3 py-1 min-w-[120px]">
-                            <div className="text-xs font-bold text-red-600">รหัสลูกค้า</div>
-                            <div className="text-base font-bold">{displayCustomerCode}</div>
+                {/* Info Grid */}
+                <div className={`grid grid-cols-12 gap-3 w-full text-slate-800 ${isCompact ? 'mb-2 mt-2' : 'mb-4 mt-4'}`}>
+                    {/* Left Column: Customer & Shipping Destination */}
+                    <div className="col-span-8 flex flex-col gap-2">
+                        {/* Customer Code */}
+                        <div className="bg-yellow-200 px-3 py-2 rounded">
+                            <span className="text-[10px] font-bold text-red-600 uppercase tracking-wide block">รหัสลูกค้า</span>
+                            <span className="text-sm font-bold block mt-0.5">{displayCustomerCode}</span>
                         </div>
-                        <div className="bg-yellow-200 px-3 py-1 min-w-[240px]">
-                            <div className="text-xs font-bold text-red-600">สถานที่ส่ง</div>
-                            <div className="text-base font-semibold">{displayCustomerName}</div>
-                            <div className="text-xs">{firstOrder.shipping_address || ''}</div>
+                        {/* Shipping Destination */}
+                        <div className="bg-yellow-200 px-3 py-2 rounded flex-1">
+                            <span className="text-[10px] font-bold text-red-600 uppercase tracking-wide block">สถานที่ส่ง</span>
+                            <span className="text-sm font-bold block mt-0.5">{displayCustomerName}</span>
+                            <span className="text-xs block mt-1 text-slate-700 whitespace-pre-line leading-relaxed">
+                                {firstOrder.shipping_address || 'ไม่มีข้อมูลสถานที่ส่ง'}
+                            </span>
                         </div>
                     </div>
-                    
-                    {/* Right Yellow Boxes */}
-                    <div className="flex gap-2 ml-auto">
-                        <div className="bg-yellow-200 px-3 py-1 min-w-[80px]">
-                            <div className="text-xs font-bold text-red-600">เลขที่</div>
-                            <div className="text-sm font-bold">{firstOrder.document_number}</div>
-                        </div>
-                        <div className="bg-yellow-200 px-3 py-1 min-w-[80px]">
-                            <div className="text-xs font-bold text-red-600">วันที่</div>
-                            <div className="text-sm">{formatDateThai(firstOrder.document_date)}</div>
+
+                    {/* Right Column: DO Details */}
+                    <div className="col-span-4 flex flex-col gap-2">
+                        {/* DO Details Single Card */}
+                        <div className="bg-yellow-200 px-3 py-2.5 rounded flex-1 flex flex-col justify-between">
+                            <div>
+                                <span className="text-[10px] font-bold text-red-600 uppercase tracking-wide block">เลขที่</span>
+                                <span className="text-sm font-bold font-mono block mt-0.5 break-all leading-none">{firstOrder.document_number}</span>
+                            </div>
+                            <div className="mt-2 border-t border-yellow-300 pt-1.5">
+                                <span className="text-[10px] font-bold text-red-600 uppercase tracking-wide block">วันที่</span>
+                                <span className="text-sm font-bold font-mono block mt-0.5 leading-none">{formatDateThai(firstOrder.document_date)}</span>
+                            </div>
+                            <div className="mt-2 border-t border-yellow-300 pt-1.5">
+                                <span className="text-[10px] font-bold text-red-600 uppercase tracking-wide block">เลขที่อ้างอิง</span>
+                                <span className="text-sm font-bold block mt-0.5 break-all leading-none">{firstOrder.reference_no || '-'}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Plant Info */}
-                <div className="text-sm mb-3">
+                <div className={`text-sm ${isCompact ? 'mb-1.5 text-xs' : 'mb-3'}`}>
                     <span className="font-bold">Plant</span>
                     <span className="ml-8">DS | WH_PKN: PKN_OB [DS]</span>
                 </div>
 
                 {/* Items Table */}
-                <table className="w-full border-collapse border border-black mb-4 do-print-table table-fixed">
+                <table className={`w-full border-collapse border border-black table-fixed do-print-table ${isCompact ? 'mb-2' : 'mb-4'} ${isVeryCompact ? 'very-compact' : isCompact ? 'compact' : ''}`}>
                     <thead className="bg-green-600 text-white">
                         <tr>
-                            <th className="border border-black p-2 text-xs font-bold w-[22%]">เลขที่ใบสั่งซื้อ</th>
-                            <th className="border border-black p-2 text-xs font-bold w-[20%]">รหัสสินค้า</th>
-                            <th className="border border-black p-2 text-xs font-bold w-[42%]">รายการสินค้า</th>
-                            <th className="border border-black p-2 text-xs font-bold w-[8%]">หน่วย</th>
-                            <th className="border border-black p-2 text-xs font-bold w-[8%]">จำนวน</th>
+                            <th className="border border-black p-2 text-xs font-bold w-[18%]">เลขที่ใบสั่งซื้อ</th>
+                            <th className="border border-black p-2 text-xs font-bold w-[24%]">รหัสสินค้า</th>
+                            <th className="border border-black p-2 text-xs font-bold w-[44%]">รายการสินค้า</th>
+                            <th className="border border-black p-2 text-xs font-bold w-[7%]">หน่วย</th>
+                            <th className="border border-black p-2 text-xs font-bold w-[7%]">จำนวน</th>
                         </tr>
                     </thead>
                     <tbody>
                         {orderGroup.map((item, idx) => (
                             <tr key={idx}>
                                 <td className="border border-black p-2 text-sm">{item.purchase_order_no || ''}</td>
-                                <td className="border border-black p-2 text-sm font-mono">{item.product_code || ''}</td>
+                                <td className="border border-black p-2 font-mono product-code-cell">{item.product_code || ''}</td>
                                 <td className="border border-black p-2 text-sm">{item.item_name}</td>
                                 <td className="border border-black p-2 text-sm text-center">{item.unit || 'EA'}</td>
                                 <td className="border border-black p-2 text-sm text-center font-bold">{item.qty}</td>
                             </tr>
                         ))}
                         {/* Additional empty rows if needed */}
-                        {Array.from({ length: Math.max(0, (combinedMode ? 2 : 4) - orderGroup.length) }).map((_, idx) => (
+                        {Array.from({ length: Math.max(0, (isVeryCompact ? 0 : isCompact ? 1 : 4) - orderGroup.length) }).map((_, idx) => (
                             <tr key={`empty-${idx}`}>
                                 <td className="border border-black p-2 h-8">&nbsp;</td>
                                 <td className="border border-black p-2">&nbsp;</td>
@@ -278,7 +296,7 @@ const DOPrint = () => {
                 </table>
 
                 {/* Reference Information */}
-                <div className="space-y-2 mb-4">
+                <div className={`space-y-1 ${isCompact ? 'mb-2 text-xs' : 'mb-4 text-sm'}`}>
                     <div className="flex">
                         <span className="font-bold w-32">เลขที่อ้างอิง :</span>
                         <span>{firstOrder.reference_no || ''}</span>
@@ -290,7 +308,7 @@ const DOPrint = () => {
                 </div>
 
                 {/* Notes Section */}
-                <div className="space-y-2 mb-6">
+                <div className={`space-y-1 ${isCompact ? 'mb-2.5 text-xs' : 'mb-6 text-sm'}`}>
                     <div className="flex">
                         <span className="font-bold w-32">หมายเหตุผู้ส่ง :</span>
                         <div className="flex-1 border-b border-dotted border-gray-400 min-h-[20px]"></div>
@@ -331,21 +349,16 @@ const DOPrint = () => {
     return (
         <div className="min-h-screen bg-slate-800 p-0 md:p-6 print:p-0 print:bg-white">
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap');
-                
                 @media print {
                     @page {
                         size: A4 portrait;
-                        margin: 15mm;
+                        margin: 8mm;
                     }
                     body {
                         margin: 0 !important;
                         padding: 0 !important;
                         background: white !important;
-                        font-family: 'Sarabun', 'TH SarabunPSK', Arial, sans-serif !important;
-                    }
-                    * {
-                        font-family: 'Sarabun', 'TH SarabunPSK', Arial, sans-serif !important;
+                        font-family: 'Sarabun', Thonburi, Tahoma, 'Segoe UI', Arial, sans-serif;
                     }
                     .print-page {
                         height: 265mm !important;
@@ -364,30 +377,52 @@ const DOPrint = () => {
                     table.do-print-table th,
                     table.do-print-table td {
                         border: 1px solid black !important;
-                        padding: 4px 8px !important;
-                        font-size: 11px !important;
+                        padding: 3.5px 5px !important;
+                        font-size: 10.5px !important;
                         word-break: break-word !important;
                         white-space: normal !important;
                     }
+                    table.do-print-table td.product-code-cell {
+                        font-size: 9px !important;
+                        letter-spacing: -0.25px !important;
+                    }
+                    table.do-print-table.compact th,
+                    table.do-print-table.compact td {
+                        padding: 2.5px 4px !important;
+                        font-size: 9.5px !important;
+                    }
+                    table.do-print-table.compact td.product-code-cell {
+                        font-size: 8.5px !important;
+                        letter-spacing: -0.3px !important;
+                    }
+                    table.do-print-table.very-compact th,
+                    table.do-print-table.very-compact td {
+                        padding: 2px 3px !important;
+                        font-size: 9px !important;
+                    }
+                    table.do-print-table.very-compact td.product-code-cell {
+                        font-size: 8px !important;
+                        letter-spacing: -0.3px !important;
+                    }
                     table.do-print-table th:nth-child(1),
                     table.do-print-table td:nth-child(1) {
-                        width: 22% !important;
+                        width: 18% !important;
                     }
                     table.do-print-table th:nth-child(2),
                     table.do-print-table td:nth-child(2) {
-                        width: 20% !important;
+                        width: 24% !important;
                     }
                     table.do-print-table th:nth-child(3),
                     table.do-print-table td:nth-child(3) {
-                        width: 42% !important;
+                        width: 44% !important;
                     }
                     table.do-print-table th:nth-child(4),
                     table.do-print-table td:nth-child(4) {
-                        width: 8% !important;
+                        width: 7% !important;
                     }
                     table.do-print-table th:nth-child(5),
                     table.do-print-table td:nth-child(5) {
-                        width: 8% !important;
+                        width: 7% !important;
                     }
                     table.do-print-table th {
                         background-color: #16a34a !important;

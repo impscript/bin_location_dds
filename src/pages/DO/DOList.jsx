@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
@@ -20,13 +20,19 @@ const STATUS_CONFIGS = {
 };
 
 const DOList = () => {
-    const { user, hasPermission } = useAuth();
+    const { user, users = [], hasPermission } = useAuth();
     const navigate = useNavigate();
+
+    const getDisplayName = (userId) => {
+        if (!userId) return '';
+        const u = users.find(x => x.id === userId);
+        return u ? u.display_name : 'ผู้ใช้ทั่วไป/ปิดใช้งานแล้ว';
+    };
 
     const [isImportOpen, setIsImportOpen] = useState(false);
     const [isAddOpen, setIsAddOpen] = useState(false);
 
-    const [orders, setOrders] = useState([]);
+    const [allOrdersGrouped, setAllOrdersGrouped] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -48,13 +54,20 @@ const DOList = () => {
         qty: 1
     });
 
+    const orders = useMemo(() => {
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize;
+        return allOrdersGrouped.slice(from, to);
+    }, [allOrdersGrouped, page, pageSize]);
+
+    const isAllSelected = useMemo(() => {
+        if (orders.length === 0) return false;
+        return orders.every(group => group.allIds.every(id => selectedIds.has(id)));
+    }, [orders, selectedIds]);
+
     const fetchOrders = async () => {
         setLoading(true);
         try {
-            let countQuery = supabase
-                .from('delivery_orders')
-                .select('id', { count: 'exact', head: true });
-
             let query = supabase
                 .from('delivery_orders')
                 .select('*');
@@ -63,55 +76,66 @@ const DOList = () => {
                 const searchPattern = `%${searchTerm.trim()}%`;
                 const filterStr = `document_number.ilike.${searchPattern},customer_name.ilike.${searchPattern},item_name.ilike.${searchPattern},reference_no.ilike.${searchPattern}`;
                 query = query.or(filterStr);
-                countQuery = countQuery.or(filterStr);
             }
 
             if (statusFilter !== 'all') {
                 query = query.eq('status', statusFilter);
-                countQuery = countQuery.eq('status', statusFilter);
             }
 
             if (startDate) {
                 query = query.gte('document_date', startDate);
-                countQuery = countQuery.gte('document_date', startDate);
             }
 
             if (endDate) {
                 query = query.lte('document_date', endDate);
-                countQuery = countQuery.lte('document_date', endDate);
             }
-
-            const { count, error: countErr } = await countQuery;
-            if (countErr) throw countErr;
-            setTotalCount(count || 0);
-
-            const from = (page - 1) * pageSize;
-            const to = from + pageSize - 1;
 
             const { data, error } = await query
                 .order('document_date', { ascending: false })
                 .order('created_at', { ascending: false })
-                .range(from, to);
+                .limit(5000);
 
             if (error) throw error;
             
             // Group by document_number for display
-            const grouped = {};
+            const groupedList = [];
+            const groupedMap = new Map();
+
             (data || []).forEach(item => {
-                if (!grouped[item.document_number]) {
-                    grouped[item.document_number] = {
-                        ...item,
+                const docNum = item.document_number;
+                if (!groupedMap.has(docNum)) {
+                    const groupObj = {
+                        id: item.id,
+                        document_number: docNum,
+                        document_date: item.document_date,
+                        purchase_order_no: item.purchase_order_no,
+                        reference_no: item.reference_no,
+                        customer_code: item.customer_code,
+                        customer_name: item.customer_name,
+                        shipping_address: item.shipping_address,
+                        status: item.status,
+                        created_at: item.created_at,
+                        created_by: item.created_by,
+                        printed_at: item.printed_at,
+                        printed_by: item.printed_by,
+                        shipped_at: item.shipped_at,
+                        shipped_by: item.shipped_by,
                         items: [],
-                        allIds: []
+                        allIds: [],
+                        totalQty: 0
                     };
+                    groupedMap.set(docNum, groupObj);
+                    groupedList.push(groupObj);
                 }
-                grouped[item.document_number].items.push(item);
-                grouped[item.document_number].allIds.push(item.id);
-                // Update total qty
-                grouped[item.document_number].totalQty = grouped[item.document_number].items.reduce((sum, i) => sum + i.qty, 0);
+
+                const groupObj = groupedMap.get(docNum);
+                groupObj.items.push(item);
+                groupObj.allIds.push(item.id);
+                groupObj.totalQty += item.qty;
             });
             
-            setOrders(Object.values(grouped));
+            setAllOrdersGrouped(groupedList);
+            setTotalCount(groupedList.length);
             setSelectedIds(new Set());
         } catch (err) {
             console.error('Failed to fetch delivery orders:', err);
@@ -125,10 +149,6 @@ const DOList = () => {
         setPage(1);
         fetchOrders();
     }, [statusFilter, startDate, endDate]);
-
-    useEffect(() => {
-        fetchOrders();
-    }, [page]);
 
     const handleSearchSubmit = (e) => {
         e.preventDefault();
@@ -156,10 +176,17 @@ const DOList = () => {
 
     const handleSelectAll = (e) => {
         if (e.target.checked) {
-            const allIds = orders.map(m => m.id);
-            setSelectedIds(new Set(allIds));
+            const next = new Set(selectedIds);
+            orders.forEach(group => {
+                group.allIds.forEach(id => next.add(id));
+            });
+            setSelectedIds(next);
         } else {
-            setSelectedIds(new Set());
+            const next = new Set(selectedIds);
+            orders.forEach(group => {
+                group.allIds.forEach(id => next.delete(id));
+            });
+            setSelectedIds(next);
         }
     };
 
@@ -278,6 +305,22 @@ const DOList = () => {
             fetchOrders();
         } catch (err) {
             console.error('Failed to delete order:', err);
+            toast.error('ลบไม่สำเร็จ: ' + err.message);
+        }
+    };
+
+    const handleDeleteGroup = async (documentNumber) => {
+        try {
+            const { error } = await supabase
+                .from('delivery_orders')
+                .delete()
+                .eq('document_number', documentNumber);
+
+            if (error) throw error;
+            toast.success('ลบรายการสำเร็จ!');
+            fetchOrders();
+        } catch (err) {
+            console.error('Failed to delete order group:', err);
             toast.error('ลบไม่สำเร็จ: ' + err.message);
         }
     };
@@ -448,7 +491,7 @@ const DOList = () => {
                                     <input
                                         type="checkbox"
                                         onChange={handleSelectAll}
-                                        checked={orders.length > 0 && selectedIds.size === orders.length}
+                                        checked={isAllSelected}
                                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
                                     />
                                 </th>
@@ -481,7 +524,7 @@ const DOList = () => {
                                 orders.map((orderGroup) => {
                                     const isEditing = editingId === orderGroup.id;
                                     const statusConfig = STATUS_CONFIGS[orderGroup.status] || STATUS_CONFIGS.pending;
-                                    const isSelected = orderGroup.allIds.some(id => selectedIds.has(id));
+                                    const isSelected = orderGroup.allIds.length > 0 && orderGroup.allIds.every(id => selectedIds.has(id));
                                     const itemsCount = orderGroup.items.length;
 
                                     return (
@@ -556,12 +599,24 @@ const DOList = () => {
                                             </td>
 
                                             <td className="px-4 py-3 text-center">
-                                                <span className={clsx(
-                                                    "px-2.5 py-1 rounded-full border text-[10px] font-bold tracking-wide uppercase inline-block",
-                                                    statusConfig.color
-                                                )}>
-                                                    {statusConfig.label}
-                                                </span>
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <span className={clsx(
+                                                        "px-2.5 py-1 rounded-full border text-[10px] font-bold tracking-wide uppercase inline-block",
+                                                        statusConfig.color
+                                                    )}>
+                                                        {statusConfig.label}
+                                                    </span>
+                                                    {orderGroup.status === 'printed' && orderGroup.printed_by && (
+                                                        <span className="text-[10px] text-slate-400 block max-w-[120px] truncate" title={`ผู้พิมพ์: ${getDisplayName(orderGroup.printed_by)}`}>
+                                                            โดย: {getDisplayName(orderGroup.printed_by)}
+                                                        </span>
+                                                    )}
+                                                    {orderGroup.status === 'shipped' && orderGroup.shipped_by && (
+                                                        <span className="text-[10px] text-slate-400 block max-w-[120px] truncate" title={`ผู้ส่ง: ${getDisplayName(orderGroup.shipped_by)}`}>
+                                                            โดย: {getDisplayName(orderGroup.shipped_by)}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
 
                                             <td className="px-4 py-3 text-center">
@@ -580,7 +635,7 @@ const DOList = () => {
                                                         <button
                                                             onClick={() => {
                                                                 if (!window.confirm(`คุณแน่ใจว่าต้องการลบใบส่งสินค้า ${orderGroup.document_number} (${itemsCount} รายการ)?`)) return;
-                                                                handleBulkDelete();
+                                                                handleDeleteGroup(orderGroup.document_number);
                                                             }}
                                                             className="p-1 text-rose-500 hover:bg-rose-50 rounded-lg transition"
                                                             title="ลบ"
