@@ -146,6 +146,12 @@ const BinDetail = () => {
                                                         <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Legacy</p>
                                                         <CopyBadge text={item.code} variant="slate" size="md" />
                                                     </div>
+                                                    {item.barcode && (
+                                                        <div>
+                                                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Barcode</p>
+                                                            <CopyBadge text={item.barcode} variant="indigo" size="md" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
 

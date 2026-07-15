@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, FileDown, FileUp, Printer, BarChart3, ScrollText, ChevronRight, Users, Moon, Sun, Bell, MapPin } from 'lucide-react';
+import { LogOut, FileDown, FileUp, Printer, BarChart3, ScrollText, ChevronRight, Users, Moon, Sun, Bell, MapPin, Barcode } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -75,6 +75,10 @@ export default function SettingsPage() {
                 (hasPermission('canCRUDProducts') || hasPermission('canMoveLocation')) && {
                     icon: Printer, label: 'พิมพ์ QR Label', desc: 'สร้าง QR Code สำหรับ Bin',
                     onClick: () => navigate('/print')
+                },
+                (hasPermission('canCRUDProducts') || hasPermission('canMoveLocation')) && {
+                    icon: Barcode, label: 'จัดการข้อมูล Barcode', desc: 'บริหารจัดการ Barcode Mapping',
+                    onClick: () => navigate('/settings/barcodes')
                 },
             ].filter(Boolean),
         },

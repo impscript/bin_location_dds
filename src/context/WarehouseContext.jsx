@@ -32,6 +32,21 @@ export const WarehouseProvider = ({ children }) => {
                 .order('bin_code');
             if (binsErr) throw binsErr;
 
+            // Fetch barcode mappings (gracefully catch if table is missing)
+            const barcodeMap = new Map();
+            try {
+                const { data: barcodeData } = await supabase
+                    .from('barcode_mappings')
+                    .select('prod_code, barcode');
+                (barcodeData || []).forEach(b => {
+                    if (b.prod_code && b.barcode) {
+                        barcodeMap.set(b.prod_code.trim(), b.barcode.trim());
+                    }
+                });
+            } catch (err) {
+                console.warn('Barcode mappings table not loaded:', err.message);
+            }
+
             // Fetch inventory with product info (paginated to bypass 1000-row limit)
             let inventoryData = [];
             let from = 0;
@@ -73,6 +88,7 @@ export const WarehouseProvider = ({ children }) => {
                     nsCode: inv.products?.ns_code || '',
                     nsName: inv.products?.ns_name || '',
                     nsSubGroup: inv.products?.ns_sub_group || '',
+                    barcode: barcodeMap.get((inv.products?.product_code || '').trim()) || '',
                     bin: bin.bin_code,
                     qty: inv.qty,
                     lotNo: inv.lot_no,
@@ -115,7 +131,8 @@ export const WarehouseProvider = ({ children }) => {
                     item.code.toLowerCase().includes(lowerQuery) ||
                     item.name.toLowerCase().includes(lowerQuery) ||
                     (item.nsCode && item.nsCode.toLowerCase().includes(lowerQuery)) ||
-                    (item.nsName && item.nsName.toLowerCase().includes(lowerQuery))
+                    (item.nsName && item.nsName.toLowerCase().includes(lowerQuery)) ||
+                    (item.barcode && item.barcode.toLowerCase().includes(lowerQuery))
                 ) {
                     results.push({ item, binId: bin.id, zone: bin.zone });
                 }

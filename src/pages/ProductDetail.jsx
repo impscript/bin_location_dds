@@ -91,6 +91,12 @@ const ProductDetail = () => {
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Legacy Code</h3>
                                 <CopyBadge text={info.code} variant="slate" size="md" className="text-base" />
                             </div>
+                            {info.barcode && (
+                                <div>
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Barcode</h3>
+                                    <CopyBadge text={info.barcode} variant="indigo" size="md" className="text-base" />
+                                </div>
+                            )}
                             {info.nsSubGroup && (
                                 <div>
                                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Sub Group</h3>
