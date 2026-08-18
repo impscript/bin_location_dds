@@ -84,16 +84,18 @@ const ProductDetail = () => {
                         {/* Codes */}
                         <div className="flex flex-wrap gap-6">
                             <div>
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">NS Code</h3>
-                                <CopyBadge text={info.nsCode} variant="blue" size="md" className="text-base" />
+                                <h3 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1.5">NS Code (Primary)</h3>
+                                <CopyBadge text={info.nsCode || info.code} variant="blue" size="md" className="text-base" />
                             </div>
-                            <div>
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Legacy Code</h3>
-                                <CopyBadge text={info.code} variant="slate" size="md" className="text-base" />
-                            </div>
+                            {info.code && info.code !== info.nsCode && (
+                                <div>
+                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Legacy Code</h3>
+                                    <CopyBadge text={info.code} variant="slate" size="md" className="text-base" />
+                                </div>
+                            )}
                             {info.barcode && (
                                 <div>
-                                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Barcode</h3>
+                                    <h3 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5">Barcode</h3>
                                     <CopyBadge text={info.barcode} variant="indigo" size="md" className="text-base" />
                                 </div>
                             )}

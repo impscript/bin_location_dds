@@ -22,25 +22,27 @@ export default function SettingsPage() {
         try {
             const { data, error } = await supabase
                 .from('inventory')
-                .select('product:products(product_code, product_name, ns_code, ns_name, unit), bin:bins(bin_code), qty')
+                .select('product:products(*), bin:bins(bin_code), qty, lot_no')
                 .order('qty', { ascending: false });
 
             if (error) throw error;
 
             const csvRows = [
-                ['product_code', 'product_name', 'ns_code', 'ns_name', 'bin_code', 'qty', 'unit'],
+                ['bin_code', 'lot_no', 'ns_code', 'product_code', 'barcode', 'product_name', 'ns_name', 'qty', 'unit'],
                 ...data.map(r => [
-                    r.product?.product_code || '',
-                    r.product?.product_name || '',
-                    r.product?.ns_code || '',
-                    r.product?.ns_name || '',
                     r.bin?.bin_code || '',
+                    r.lot_no || '',
+                    r.product?.ns_code || '',
+                    r.product?.product_code || '',
+                    r.product?.barcode || '',
+                    r.product?.product_name || '',
+                    r.product?.ns_name || '',
                     r.qty,
                     r.product?.unit || 'EA'
                 ])
             ];
             const csv = csvRows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -77,8 +79,12 @@ export default function SettingsPage() {
                     onClick: () => navigate('/print')
                 },
                 (hasPermission('canCRUDProducts') || hasPermission('canMoveLocation')) && {
-                    icon: Barcode, label: 'จัดการข้อมูล Barcode', desc: 'บริหารจัดการ Barcode Mapping',
-                    onClick: () => navigate('/settings/barcodes')
+                    icon: Barcode,
+                    label: 'จัดการข้อมูล Barcode',
+                    desc: 'รวมเข้ากับ Master Data สินค้าแล้ว (Inactive)',
+                    badge: 'ย้ายไป Master Data แล้ว',
+                    disabled: true,
+                    onClick: () => toast.info('ระบบ Barcode ได้ถูกรวมเข้ากับ Master Data สินค้าแล้ว สามารถระบุ Barcode ในหน้าสินค้าหรือไฟล์ Import ได้โดยตรง')
                 },
             ].filter(Boolean),
         },
@@ -147,19 +153,36 @@ export default function SettingsPage() {
                                     <button
                                         key={item.label}
                                         onClick={item.onClick}
-                                        className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-700 transition text-left"
+                                        className={`w-full flex items-center gap-4 px-5 py-4 transition text-left ${
+                                            item.disabled
+                                                ? 'opacity-60 bg-slate-50/50 dark:bg-slate-800/50 cursor-not-allowed'
+                                                : 'hover:bg-slate-50 dark:hover:bg-slate-700'
+                                        }`}
                                     >
-                                        <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                                            <Icon className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400" />
+                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                            item.disabled
+                                                ? 'bg-slate-100 dark:bg-slate-700 text-slate-400'
+                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                                        }`}>
+                                            <Icon className="w-4.5 h-4.5" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-slate-800 dark:text-white">{item.label}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-sm font-medium text-slate-800 dark:text-white">{item.label}</p>
+                                                {item.badge && (
+                                                    <span className="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 px-2 py-0.5 rounded-full font-medium border border-slate-200 dark:border-slate-600">
+                                                        {item.badge}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <p className="text-xs text-slate-500 dark:text-slate-400">{item.desc}</p>
                                         </div>
                                         {item.toggle ? (
                                             <div className={`w-10 h-6 rounded-full transition ${item.isOn ? 'bg-blue-600' : 'bg-slate-300'} relative`}>
                                                 <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${item.isOn ? 'left-5' : 'left-1'}`} />
                                             </div>
+                                        ) : item.disabled ? (
+                                            <span className="text-xs text-slate-400 font-medium">Inactive</span>
                                         ) : (
                                             <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
                                         )}

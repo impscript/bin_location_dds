@@ -218,10 +218,10 @@ const StockCountReview = () => {
                                 varianceItems.map((item) => (
                                     <tr key={item.id} className="hover:bg-slate-50 transition">
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <CopyBadge text={item.product_code} variant="slate" size="sm" />
-                                                {item.ns_code && (
-                                                    <CopyBadge text={item.ns_code} label="NS" variant="blue" size="sm" />
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <CopyBadge text={item.ns_code || item.product_code} label="NS" variant="blue" size="sm" />
+                                                {item.product_code && item.product_code !== item.ns_code && (
+                                                    <CopyBadge text={item.product_code} variant="slate" size="sm" />
                                                 )}
                                             </div>
                                             <div className="text-xs text-slate-500 mt-1">{item.product_name}</div>

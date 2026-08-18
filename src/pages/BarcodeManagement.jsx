@@ -269,13 +269,26 @@ export default function BarcodeManagement() {
                         <ArrowLeft className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                     </button>
                     <div className="flex-1">
-                        <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                            <Barcode className="h-6 w-6 text-blue-600" />
-                            จัดการข้อมูล Barcode
-                        </h1>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <Barcode className="h-6 w-6 text-blue-600" />
+                                จัดการข้อมูล Barcode
+                            </h1>
+                            <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                                Inactive (Legacy)
+                            </span>
+                        </div>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                            จับคู่รหัสสินค้า Legacy Code กับ Barcode เพื่อนำไปแสดงผลในหน้ารายละเอียดและรายงานต่างๆ
+                            ระบบได้ปรับปรุงให้ Barcode รวมอยู่ใน Master Data สินค้าโดยตรงแล้ว (หน้านี้เก็บไว้สำหรับข้อมูลสำรองเดิม)
                         </p>
+                    </div>
+                </div>
+
+                <div className="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                        <p className="font-bold">โครงสร้าง Master Data ใหม่ (3 รหัส):</p>
+                        <p className="mt-0.5">ปัจจุบันสินค้าทุกตัวใช้ <strong>NS Code</strong> เป็นรหัสหลัก และมี <strong>Product Code</strong> กับ <strong>Barcode</strong> บันทึกอยู่ใน Master Data โดยตรงเวลา Import/แก้ไขสินค้า โดยไม่ต้องทำ Mapping แยกอีกต่อไป</p>
                     </div>
                 </div>
 

@@ -32,21 +32,6 @@ export const WarehouseProvider = ({ children }) => {
                 .order('bin_code');
             if (binsErr) throw binsErr;
 
-            // Fetch barcode mappings (gracefully catch if table is missing)
-            const barcodeMap = new Map();
-            try {
-                const { data: barcodeData } = await supabase
-                    .from('barcode_mappings')
-                    .select('prod_code, barcode');
-                (barcodeData || []).forEach(b => {
-                    if (b.prod_code && b.barcode) {
-                        barcodeMap.set(b.prod_code.trim(), b.barcode.trim());
-                    }
-                });
-            } catch (err) {
-                console.warn('Barcode mappings table not loaded:', err.message);
-            }
-
             // Fetch inventory with product info (paginated to bypass 1000-row limit)
             let inventoryData = [];
             let from = 0;
@@ -54,7 +39,7 @@ export const WarehouseProvider = ({ children }) => {
             while (true) {
                 const { data: page, error: invErr } = await supabase
                     .from('inventory')
-                    .select('*, products(product_code, product_name, unit, ns_code, ns_name, ns_sub_group)')
+                    .select('*, products(*)')
                     .range(from, from + pageSize - 1)
                     .order('bin_id');
                 if (invErr) throw invErr;
@@ -72,7 +57,7 @@ export const WarehouseProvider = ({ children }) => {
                 inventoryByBin[inv.bin_id].push(inv);
             });
 
-            // Transform to legacy warehouse format (for backward compatibility)
+            // Transform to legacy warehouse format (with 3-code Master Data: nsCode, code, barcode)
             const legacyData = (binsData || []).map(bin => ({
                 id: bin.bin_code,
                 zone: bin.zones?.name || 'Unknown',
@@ -82,13 +67,13 @@ export const WarehouseProvider = ({ children }) => {
                 isOccupied: (inventoryByBin[bin.id] || []).length > 0,
                 _binUuid: bin.id, // Keep UUID reference for DB operations
                 items: (inventoryByBin[bin.id] || []).map(inv => ({
-                    code: inv.products?.product_code || 'N/A',
-                    name: inv.products?.product_name || 'Unknown',
+                    code: inv.products?.product_code || '',
+                    name: inv.products?.product_name || inv.products?.ns_name || 'Unknown',
                     unit: inv.products?.unit || 'EA',
                     nsCode: inv.products?.ns_code || '',
-                    nsName: inv.products?.ns_name || '',
+                    nsName: inv.products?.ns_name || inv.products?.product_name || '',
                     nsSubGroup: inv.products?.ns_sub_group || '',
-                    barcode: barcodeMap.get((inv.products?.product_code || '').trim()) || '',
+                    barcode: inv.products?.barcode || '',
                     bin: bin.bin_code,
                     qty: inv.qty,
                     lotNo: inv.lot_no,
@@ -122,17 +107,18 @@ export const WarehouseProvider = ({ children }) => {
 
     const searchItems = (query) => {
         if (!query) return [];
-        const lowerQuery = query.toLowerCase();
+        const lowerQuery = query.toLowerCase().trim();
         const results = [];
 
         warehouseData.forEach(bin => {
             bin.items.forEach(item => {
                 if (
-                    item.code.toLowerCase().includes(lowerQuery) ||
-                    item.name.toLowerCase().includes(lowerQuery) ||
                     (item.nsCode && item.nsCode.toLowerCase().includes(lowerQuery)) ||
+                    (item.code && item.code.toLowerCase().includes(lowerQuery)) ||
+                    (item.barcode && item.barcode.toLowerCase().includes(lowerQuery)) ||
+                    (item.name && item.name.toLowerCase().includes(lowerQuery)) ||
                     (item.nsName && item.nsName.toLowerCase().includes(lowerQuery)) ||
-                    (item.barcode && item.barcode.toLowerCase().includes(lowerQuery))
+                    (item.lotNo && item.lotNo.toLowerCase().includes(lowerQuery))
                 ) {
                     results.push({ item, binId: bin.id, zone: bin.zone });
                 }

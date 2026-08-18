@@ -175,14 +175,23 @@ export default function ScanPage() {
                             {scanResults.map((res, index) => (
                                 <div key={index} className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
                                     <div className="flex justify-between items-start mb-3">
-                                        <div>
-                                            <div className="font-bold text-slate-900 text-lg">{res.item.code}</div>
-                                            <div className="text-sm text-slate-500">{res.item.name}</div>
-                                            {res.item.nsCode && (
-                                                <div className="text-xs text-blue-600 font-mono mt-1 bg-blue-50 inline-block px-1.5 py-0.5 rounded">
-                                                    NS: {res.item.nsCode}
-                                                </div>
-                                            )}
+                                        <div className="space-y-1">
+                                            <div className="font-bold text-slate-900 text-lg">{res.item.nsName || res.item.name}</div>
+                                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                                <span className="text-xs text-blue-700 font-mono font-bold bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+                                                    NS: {res.item.nsCode || res.item.code}
+                                                </span>
+                                                {res.item.code && res.item.code !== res.item.nsCode && (
+                                                    <span className="text-xs text-slate-600 font-mono bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+                                                        Code: {res.item.code}
+                                                    </span>
+                                                )}
+                                                {res.item.barcode && (
+                                                    <span className="text-xs text-indigo-700 font-mono font-medium bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+                                                        Bar: {res.item.barcode}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="bg-slate-100 px-3 py-1 rounded-lg text-center min-w-[3rem]">
                                             <div className="text-xs text-slate-500 uppercase">QTY</div>

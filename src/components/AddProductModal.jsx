@@ -19,6 +19,7 @@ export default function AddProductModal({
     // Form State
     const [nsCode, setNsCode] = useState(initialCode);
     const [productCode, setProductCode] = useState('');
+    const [barcode, setBarcode] = useState('');
     const [productName, setProductName] = useState('');
     const [unit, setUnit] = useState('EA');
     const [nsSubGroup, setNsSubGroup] = useState('');
@@ -49,6 +50,7 @@ export default function AddProductModal({
         if (isOpen) {
             setNsCode(initialCode);
             setProductCode('');
+            setBarcode('');
             setProductName('');
             setUnit('EA');
             setNsSubGroup('');
@@ -73,7 +75,11 @@ export default function AddProductModal({
         let found = null;
         for (const bin of warehouseData) {
             for (const item of bin.items) {
-                if (item.nsCode?.toLowerCase() === nsCode.toLowerCase() || item.code?.toLowerCase() === nsCode.toLowerCase()) {
+                if (
+                    item.nsCode?.toLowerCase() === nsCode.toLowerCase() ||
+                    item.code?.toLowerCase() === nsCode.toLowerCase() ||
+                    (item.barcode && item.barcode.toLowerCase() === nsCode.toLowerCase())
+                ) {
                     found = item;
                     break;
                 }
@@ -83,11 +89,12 @@ export default function AddProductModal({
 
         if (found && !existingProduct) {
             setExistingProduct(found);
-            setProductName(found.name || found.nsName);
-            setProductCode(found.code);
-            setUnit(found.unit);
-            setNsSubGroup(found.nsSubGroup);
-            toast.info(`พบสินค้า '${found.name}' ในระบบแล้ว`, { id: 'found-prod-toast' });
+            setProductName(found.nsName || found.name);
+            setProductCode(found.code || '');
+            setBarcode(found.barcode || '');
+            setUnit(found.unit || 'EA');
+            setNsSubGroup(found.nsSubGroup || '');
+            toast.info(`พบสินค้า '${found.nsName || found.name}' ในระบบแล้ว`, { id: 'found-prod-toast' });
         }
     }, [nsCode, warehouseData]);
 
@@ -102,7 +109,6 @@ export default function AddProductModal({
         const exactMatch = warehouseData.find(b => b.id.toLowerCase() === query);
         if (exactMatch) {
             // Already selected exactly
-            // setBinSearchResults([]); 
         }
 
         const matches = warehouseData
@@ -123,7 +129,6 @@ export default function AddProductModal({
         const exactMatch = uniqueSubGroups.find(g => g.toLowerCase() === query);
         if (exactMatch) {
             // Already matched exactly
-            // setSubGroupSearchResults([]);
         }
 
         const matches = uniqueSubGroups
@@ -137,7 +142,7 @@ export default function AddProductModal({
         e.preventDefault();
 
         // Validation
-        if (!nsCode && !productCode) return toast.error('ต้องระบุ NS Code หรือ Product Code');
+        if (!nsCode && !productCode && !barcode) return toast.error('ต้องระบุอย่างน้อย NS Code, Product Code หรือ Barcode');
         if (!productName) return toast.error('กรุณาระบุชื่อสินค้า');
         if (!binCode) return toast.error('กรุณาระบุ Bin (Location)');
         if (qty <= 0) return toast.error('จำนวนต้องมากกว่า 0');
@@ -147,8 +152,9 @@ export default function AddProductModal({
         if (!targetBin) return toast.error(`ไม่พบข้อมูล Bin: ${binCode} ในระบบ`);
 
         const productData = {
-            ns_code: nsCode || productCode,
-            product_code: productCode || nsCode,
+            ns_code: nsCode || productCode || barcode,
+            product_code: productCode || null,
+            barcode: barcode || null,
             product_name: productName,
             ns_name: productName,
             unit: unit || 'EA',
@@ -250,27 +256,27 @@ export default function AddProductModal({
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-5">
-                        <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1.5 sm:col-span-1">
                             <label className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
-                                <Search className="w-4 h-4 text-slate-400" /> NS Code <span className="text-red-500">*</span>
+                                <Search className="w-4 h-4 text-blue-500" /> NS Code <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
                                 required
                                 value={nsCode}
                                 onChange={(e) => setNsCode(e.target.value)}
-                                placeholder="เช่น 2CT-XX..."
+                                placeholder="เช่น 1CKD-DA..."
                                 className={clsx(
-                                    "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition shadow-sm uppercase font-mono text-sm",
+                                    "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition shadow-sm uppercase font-mono text-sm",
                                     isStockCountMode ? "focus:ring-amber-500/30 focus:border-amber-500" : "focus:ring-blue-500/30 focus:border-blue-500"
                                 )}
                             />
                         </div>
 
-                        <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                        <div className="space-y-1.5 sm:col-span-1">
                             <label className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
-                                <Hash className="w-4 h-4 text-slate-400" /> Legacy Code (ถ้ามี)
+                                <Hash className="w-4 h-4 text-slate-400" /> Legacy Code
                             </label>
                             <input
                                 type="text"
@@ -278,13 +284,29 @@ export default function AddProductModal({
                                 onChange={(e) => setProductCode(e.target.value)}
                                 placeholder="รหัสเดิม..."
                                 className={clsx(
-                                    "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition shadow-sm font-mono text-sm uppercase",
+                                    "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition shadow-sm font-mono text-sm uppercase",
                                     isStockCountMode ? "focus:ring-amber-500/30 focus:border-amber-500" : "focus:ring-blue-500/30 focus:border-blue-500"
                                 )}
                             />
                         </div>
 
-                        <div className="space-y-1.5 col-span-2">
+                        <div className="space-y-1.5 sm:col-span-1">
+                            <label className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                                <Hash className="w-4 h-4 text-indigo-500" /> Barcode
+                            </label>
+                            <input
+                                type="text"
+                                value={barcode}
+                                onChange={(e) => setBarcode(e.target.value)}
+                                placeholder="เช่น 8856976..."
+                                className={clsx(
+                                    "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition shadow-sm font-mono text-sm",
+                                    isStockCountMode ? "focus:ring-amber-500/30 focus:border-amber-500" : "focus:ring-indigo-500/30 focus:border-indigo-500"
+                                )}
+                            />
+                        </div>
+
+                        <div className="space-y-1.5 sm:col-span-3">
                             <label className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
                                 <Box className="w-4 h-4 text-slate-400" /> ชื่อสินค้า <span className="text-red-500">*</span>
                             </label>
@@ -293,7 +315,7 @@ export default function AddProductModal({
                                 required
                                 value={productName}
                                 onChange={(e) => setProductName(e.target.value)}
-                                placeholder="แฟ้มสันกว้าง ตราช้าง..."
+                                placeholder="Double A 80G A4..."
                                 className={clsx(
                                     "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition shadow-sm",
                                     isStockCountMode ? "focus:ring-amber-500/30 focus:border-amber-500" : "focus:ring-blue-500/30 focus:border-blue-500"

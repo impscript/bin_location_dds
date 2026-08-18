@@ -18,9 +18,10 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
 
     // Column mapping
     const [columnMap, setColumnMap] = useState({
-        product_code: '',
-        product_name: '',
         ns_code: '',
+        product_code: '',
+        barcode: '',
+        product_name: '',
         ns_name: '',
         bin_code: '',
         lot_no: '',
@@ -28,11 +29,11 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         unit: '',
     });
 
-    const requiredFields = ['product_code', 'bin_code', 'qty'];
     const fieldLabels = {
-        product_code: 'Product Code *',
+        ns_code: 'NS Code (รหัสหลัก) *',
+        product_code: 'Product Code (Legacy)',
+        barcode: 'Barcode',
         product_name: 'Product Name',
-        ns_code: 'NS Code',
         ns_name: 'NS Name',
         bin_code: 'Bin Code *',
         lot_no: 'Lot No',
@@ -55,12 +56,13 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                 // Auto-map columns by matching header names
                 const autoMap = {};
                 const fieldAliases = {
+                    ns_code: ['ns_code', 'nscode', 'netsuite_code', 'ns code', 'ns_code'],
                     product_code: ['product_code', 'productcode', 'รหัสสินค้า', 'item_code', 'sku'],
+                    barcode: ['barcode', 'บาร์โค้ด', 'bar_code', 'ean', 'upc'],
                     product_name: ['product_name', 'productname', 'ชื่อสินค้า', 'item_name', 'name', 'description'],
-                    ns_code: ['ns_code', 'nscode', 'netsuite_code', 'ns code'],
                     ns_name: ['ns_name', 'nsname', 'netsuite_name', 'ns name'],
-                    bin_code: ['bin_code', 'bincode', 'bin', 'location', 'รหัสbin', 'shelf'],
-                    lot_no: ['lot_no', 'lotno', 'lot', 'batch'],
+                    bin_code: ['bin_code', 'bincode', 'bin', 'location', 'รหัสbin', 'shelf', 'bin id', 'bin_id'],
+                    lot_no: ['lot_no', 'lotno', 'lot', 'batch', 'lot no'],
                     qty: ['qty', 'quantity', 'จำนวน', 'stock', 'amount', 'on_hand'],
                     unit: ['unit', 'uom', 'หน่วย'],
                 };
@@ -91,16 +93,17 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         }
     }, []);
 
-    const isMapValid = requiredFields.every(f => columnMap[f]);
+    const isMapValid = Boolean((columnMap.ns_code || columnMap.product_code || columnMap.barcode) && columnMap.bin_code && columnMap.qty);
 
     // Preview data with mapped columns
     const previewRows = useMemo(() => {
         if (!isMapValid) return [];
         return parsedData.slice(0, 10).map(row => ({
+            ns_code: row[columnMap.ns_code] || row[columnMap.product_code] || '',
             product_code: row[columnMap.product_code] || '',
-            product_name: row[columnMap.product_name] || '',
-            ns_code: row[columnMap.ns_code] || '',
-            ns_name: row[columnMap.ns_name] || '',
+            barcode: row[columnMap.barcode] || '',
+            product_name: row[columnMap.product_name] || row[columnMap.ns_name] || '',
+            ns_name: row[columnMap.ns_name] || row[columnMap.product_name] || '',
             bin_code: row[columnMap.bin_code] || '',
             lot_no: row[columnMap.lot_no] || '',
             qty: row[columnMap.qty] || '0',
@@ -118,15 +121,16 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         try {
             // Map all rows
             const rows = parsedData.map(row => ({
+                ns_code: (row[columnMap.ns_code] || row[columnMap.product_code] || '').trim(),
                 product_code: (row[columnMap.product_code] || '').trim(),
-                product_name: (row[columnMap.product_name] || '').trim(),
-                ns_code: (row[columnMap.ns_code] || '').trim(),
-                ns_name: (row[columnMap.ns_name] || '').trim(),
+                barcode: (row[columnMap.barcode] || '').trim(),
+                product_name: (row[columnMap.product_name] || row[columnMap.ns_name] || '').trim(),
+                ns_name: (row[columnMap.ns_name] || row[columnMap.product_name] || '').trim(),
                 bin_code: (row[columnMap.bin_code] || '').trim(),
                 lot_no: (row[columnMap.lot_no] || '').trim(),
                 qty: parseInt(row[columnMap.qty]) || 0,
                 unit: (row[columnMap.unit] || 'EA').trim(),
-            })).filter(r => r.product_code && r.bin_code);
+            })).filter(r => (r.ns_code || r.product_code) && r.bin_code);
 
             // Process in batches to avoid statement timeout
             const totalBatches = Math.ceil(rows.length / BATCH_SIZE);
@@ -155,7 +159,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
 
             setImportResult(totalResult);
             setStep('done');
-            toast.success(`นำเข้าสำเร็จ! ${totalResult.inventory_created} ใหม่, ${totalResult.inventory_updated} อัพเดท, ${totalResult.inventory_skipped} ไม่เปลี่ยน`);
+            toast.success(`นำเข้าสำเร็จ! ${totalResult.inventory_created || 0} ใหม่, ${totalResult.inventory_updated || 0} อัพเดท`);
             onSuccess?.();
         } catch (err) {
             console.error('Import error:', err);
@@ -167,7 +171,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
     };
 
     const handleDownloadTemplate = () => {
-        const template = 'product_code,product_name,ns_code,ns_name,bin_code,qty,unit\nPROD-001,Sample Product,NS001,NS Sample,A-01-01,100,EA\n';
+        const template = 'bin_code,lot_no,ns_code,product_code,barcode,product_name,unit,qty\nOB_Non A1-1,LOT20260818,1CKD-DA-080-A04-040-4L-001,208140800012252,8856976000689,Double A 80G A4 (40),KG,100\n';
         const blob = new Blob(['\ufeff' + template], { type: 'text/csv;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -183,7 +187,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
         setHeaders([]);
         setStep('upload');
         setImportResult(null);
-        setColumnMap({ product_code: '', product_name: '', ns_code: '', ns_name: '', bin_code: '', lot_no: '', qty: '', unit: '' });
+        setColumnMap({ ns_code: '', product_code: '', barcode: '', product_name: '', ns_name: '', bin_code: '', lot_no: '', qty: '', unit: '' });
         onClose();
     };
 
@@ -272,7 +276,7 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                                 {!isMapValid && (
                                     <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
                                         <AlertTriangle className="w-3 h-3" />
-                                        กรุณาเลือก column ที่จำเป็น (product_code, bin_code, qty)
+                                        กรุณาเลือก column ที่จำเป็น (NS Code/Product Code, Bin Code, Qty)
                                     </p>
                                 )}
                             </div>
@@ -287,9 +291,10 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                                         <table className="w-full text-sm">
                                             <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                                                 <tr>
-                                                    <th className="px-3 py-2 text-left">Product Code</th>
+                                                    <th className="px-3 py-2 text-left">NS Code (Primary)</th>
+                                                    <th className="px-3 py-2 text-left">Legacy Code</th>
+                                                    <th className="px-3 py-2 text-left">Barcode</th>
                                                     <th className="px-3 py-2 text-left">Name</th>
-                                                    <th className="px-3 py-2 text-left">NS Code</th>
                                                     <th className="px-3 py-2 text-left">Bin</th>
                                                     <th className="px-3 py-2 text-right">Qty</th>
                                                     <th className="px-3 py-2 text-left">Unit</th>
@@ -298,9 +303,10 @@ const ImportModal = ({ isOpen, onClose, onSuccess }) => {
                                             <tbody className="divide-y divide-slate-100">
                                                 {previewRows.map((row, i) => (
                                                     <tr key={i} className="hover:bg-slate-50">
-                                                        <td className="px-3 py-2 font-mono text-xs">{row.product_code}</td>
+                                                        <td className="px-3 py-2 font-mono text-xs text-blue-600 font-semibold">{row.ns_code}</td>
+                                                        <td className="px-3 py-2 font-mono text-xs text-slate-500">{row.product_code}</td>
+                                                        <td className="px-3 py-2 font-mono text-xs text-indigo-600">{row.barcode}</td>
                                                         <td className="px-3 py-2 truncate max-w-[150px]">{row.product_name}</td>
-                                                        <td className="px-3 py-2 font-mono text-xs text-blue-600">{row.ns_code}</td>
                                                         <td className="px-3 py-2 font-mono text-xs">{row.bin_code}</td>
                                                         <td className="px-3 py-2 text-right font-medium">{row.qty}</td>
                                                         <td className="px-3 py-2 text-slate-500">{row.unit}</td>

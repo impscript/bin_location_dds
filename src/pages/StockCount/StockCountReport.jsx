@@ -30,7 +30,7 @@ const StockCountReport = () => {
                     .from('stock_count_items')
                     .select(`
                         *,
-                        product:products(product_code, product_name, ns_code, ns_name, unit),
+                        product:products(*),
                         bin:bins(bin_code),
                         counter:users!stock_count_items_counted_by_fkey(display_name)
                     `)
@@ -55,6 +55,7 @@ const StockCountReport = () => {
                 item.product?.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.product?.ns_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.product?.ns_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.product?.barcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.bin?.bin_code?.toLowerCase().includes(searchTerm.toLowerCase());
 
             const matchesFilter =
@@ -79,14 +80,15 @@ const StockCountReport = () => {
     // Export CSV
     const handleExportCSV = () => {
         const headers = [
-            'Product Code', 'NS Code', 'Product Name', 'NS Name', 'Bin',
+            'NS Code', 'Product Code', 'Barcode', 'Product Name', 'NS Name', 'Bin',
             'Unit', 'System Qty', 'Counted Qty', 'Variance', 'Status',
             'Counted By', 'Counted At'
         ];
 
         const rows = filteredItems.map(item => [
+            item.product?.ns_code || item.product?.product_code || '',
             item.product?.product_code || '',
-            item.product?.ns_code || '',
+            item.product?.barcode || '',
             item.product?.product_name || '',
             item.product?.ns_name || '',
             item.bin?.bin_code || '',
@@ -350,12 +352,15 @@ const StockCountReport = () => {
                                     <tr key={item.id} className="hover:bg-slate-50/50 transition">
                                         <td className="px-4 py-3 text-slate-400 text-xs">{idx + 1}</td>
                                         <td className="px-4 py-3">
-                                            <CopyBadge text={item.product?.product_code} variant="slate" />
-                                            {item.product?.ns_code && (
-                                                <div className="mt-0.5">
-                                                    <CopyBadge text={item.product.ns_code} variant="blue" />
-                                                </div>
-                                            )}
+                                            <div className="flex flex-col gap-1">
+                                                <CopyBadge text={item.product?.ns_code || item.product?.product_code} label="NS" variant="blue" size="sm" />
+                                                {item.product?.product_code && item.product?.product_code !== item.product?.ns_code && (
+                                                    <CopyBadge text={item.product.product_code} variant="slate" size="sm" />
+                                                )}
+                                                {item.product?.barcode && (
+                                                    <CopyBadge text={item.product.barcode} label="Bar" variant="indigo" size="sm" />
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="font-medium text-slate-800 truncate max-w-[200px]">

@@ -21,10 +21,10 @@ const DataImportExport = ({ isOpen, onClose }) => {
     const BATCH_SIZE = 200; // rows per RPC call to avoid statement timeout
 
     const handleDownloadTemplate = () => {
-        const headers = ["Bin ID", "Lot No", "Product Code", "Product Name", "Unit", "NS Code", "NS Name", "NS SubGroup", "Quantity"];
+        const headers = ["Bin ID", "Lot No", "NS Code", "Product Code", "Product Name", "BARCODE", "Unit", "NS Name", "NS SubGroup", "Quantity"];
         const sampleData = [
-            ["OB_Non A1-1", "LOT202310A", "P001", "Sample Product", "PCS", "NS-001", "NS Product Name", "Stationery", "100"],
-            ["OB_Non A1-2", "LOT202310B", "P002", "Another Product", "BOX", "NS-002", "NS Another Name", "General", "50"]
+            ["OB_Non A1-1", "LOT20260818", "1CKD-DA-080-A04-040-4L-001", "208140800012252", "Double A 80G A4 (40)", "8856976000689", "KG", "Double A 80G A4 (40)", "Cutsize (Small Pack)", "100"],
+            ["OB_Non A1-2", "LOT20260818", "1CKD-DA-080-A04-040-4L-002", "A8858741704648D", "Double A 80G A4 (Pack4)", "8858741704648", "KG", "Double A 80G A4 (Pack4)", "Cutsize (Small Pack)", "50"]
         ];
 
         const csvContent = [
@@ -32,7 +32,7 @@ const DataImportExport = ({ isOpen, onClose }) => {
             ...sampleData.map(row => row.join(","))
         ].join("\n");
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
@@ -55,16 +55,33 @@ const DataImportExport = ({ isOpen, onClose }) => {
                 const text = event.target.result;
                 const lines = text.split(/\r\n|\n/);
 
-                // Basic CSV parser to handle quotes if necessary, but simple split for now
-                // Assuming simple CSV structure as per previous valid files
                 const headers = lines[0].split(',').map(h => h.trim());
 
-                // Validate Headers
-                const requiredHeaders = ["Bin ID", "Lot No", "Product Code", "Product Name", "Unit", "NS Code", "NS Name", "NS SubGroup", "Quantity"];
-                const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+                // Find matching headers case-insensitively
+                const findHeader = (aliases) => {
+                    return headers.find(h =>
+                        aliases.some(a => h.toLowerCase().trim().replace(/[\s_-]/g, '') === a.toLowerCase().replace(/[\s_-]/g, ''))
+                    );
+                };
 
-                if (missingHeaders.length > 0) {
-                    setValidationErrors([`Invalid CSV format. Missing headers: ${missingHeaders.join(', ')}`]);
+                const binHeader = findHeader(["Bin ID", "bin_id", "bin", "bincode", "bin_code"]);
+                const nsCodeHeader = findHeader(["NS Code", "ns_code", "nscode", "netsuite_code"]);
+                const prodCodeHeader = findHeader(["Product Code", "product_code", "productcode", "item_code", "sku"]);
+                const barcodeHeader = findHeader(["BARCODE", "barcode", "บาร์โค้ด", "bar_code"]);
+                const prodNameHeader = findHeader(["Product Name", "product_name", "productname", "ชื่อสินค้า", "name"]);
+                const nsNameHeader = findHeader(["NS Name", "ns_name", "nsname"]);
+                const unitHeader = findHeader(["Unit", "unit", "หน่วย"]);
+                const subGroupHeader = findHeader(["NS SubGroup", "ns_sub_group", "subgroup", "group"]);
+                const qtyHeader = findHeader(["Quantity", "qty", "quantity", "จำนวน"]);
+                const lotNoHeader = findHeader(["Lot No", "lot_no", "lotno", "lot"]);
+
+                if (!binHeader) {
+                    setValidationErrors([`รูปแบบ CSV ไม่ถูกต้อง: ไม่พบคอลัมน์ Bin ID`]);
+                    setIsValidating(false);
+                    return;
+                }
+                if (!nsCodeHeader && !prodCodeHeader) {
+                    setValidationErrors([`รูปแบบ CSV ไม่ถูกต้อง: ต้องมีคอลัมน์ NS Code หรือ Product Code อย่างน้อย 1 คอลัมน์`]);
                     setIsValidating(false);
                     return;
                 }
@@ -94,41 +111,39 @@ const DataImportExport = ({ isOpen, onClose }) => {
                     if (!line) continue;
 
                     const values = parseCSVLine(line);
+                    if (values.length < 2) continue;
 
-                    if (values.length < requiredHeaders.length) {
-                        // Skip empty lines or malformed
-                        continue;
-                    }
-
-                    // Map values to keys based on header index
                     const rowData = {};
-                    requiredHeaders.forEach((header, index) => {
-                        const headerIndex = headers.indexOf(header);
-                        rowData[header] = values[headerIndex];
+                    headers.forEach((header, index) => {
+                        rowData[header] = values[index] || '';
                     });
 
-                    const binId = rowData["Bin ID"];
+                    const cleanBinId = (rowData[binHeader] || '').trim();
+                    const cleanNsCode = nsCodeHeader ? (rowData[nsCodeHeader] || '').trim() : '';
+                    const cleanProdCode = prodCodeHeader ? (rowData[prodCodeHeader] || '').trim() : '';
+                    const cleanBarcode = barcodeHeader ? (rowData[barcodeHeader] || '').trim() : '';
 
-                    const cleanBinId = binId ? binId.trim() : "";
-                    let binError = null;
-
+                    let rowError = null;
                     if (!cleanBinId) {
-                        binError = `Row ${i + 1}: Missing Bin ID`;
+                        rowError = `แถวที่ ${i + 1}: ขาดรหัส Bin ID`;
+                    } else if (!cleanNsCode && !cleanProdCode && !cleanBarcode) {
+                        rowError = `แถวที่ ${i + 1}: ขาดรหัสสินค้า (NS Code / Product Code / Barcode)`;
                     }
 
-                    if (binError) errors.push(binError);
+                    if (rowError) errors.push(rowError);
 
-                    if (!binError) {
+                    if (!rowError) {
                         parsedData.push({
                             binId: cleanBinId,
-                            lotNo: rowData["Lot No"],
-                            productCode: rowData["Product Code"],
-                            productName: rowData["Product Name"],
-                            unit: rowData["Unit"],
-                            nsCode: rowData["NS Code"],
-                            nsName: rowData["NS Name"],
-                            nsSubGroup: rowData["NS SubGroup"],
-                            quantity: rowData["Quantity"]
+                            lotNo: lotNoHeader ? rowData[lotNoHeader] : '',
+                            nsCode: cleanNsCode || cleanProdCode,
+                            productCode: cleanProdCode,
+                            barcode: cleanBarcode,
+                            productName: prodNameHeader ? rowData[prodNameHeader] : (rowData[nsNameHeader] || 'Product'),
+                            nsName: nsNameHeader ? rowData[nsNameHeader] : (rowData[prodNameHeader] || ''),
+                            unit: unitHeader ? (rowData[unitHeader] || 'EA') : 'EA',
+                            nsSubGroup: subGroupHeader ? rowData[subGroupHeader] : '',
+                            quantity: qtyHeader ? (rowData[qtyHeader] || '0') : '0'
                         });
                     }
                 }
@@ -187,15 +202,17 @@ const DataImportExport = ({ isOpen, onClose }) => {
         try {
             // Map parsed data to the format expected by upsert_inventory_csv
             const rows = parsedData.map(row => ({
+                ns_code: (row.nsCode || row.productCode || '').trim(),
                 product_code: (row.productCode || '').trim(),
-                product_name: (row.productName || '').trim(),
-                ns_code: (row.nsCode || '').trim(),
-                ns_name: (row.nsName || '').trim(),
+                barcode: (row.barcode || '').trim(),
+                product_name: (row.productName || row.nsName || '').trim(),
+                ns_name: (row.nsName || row.productName || '').trim(),
+                ns_sub_group: (row.nsSubGroup || '').trim(),
                 bin_code: (row.binId || '').trim(),
-                lot_no: (row.lotNo || '').trim(), // Added Lot No mapping
+                lot_no: (row.lotNo || '').trim(),
                 qty: parseInt(row.quantity) || 0,
                 unit: (row.unit || 'EA').trim(),
-            })).filter(r => r.product_code && r.bin_code);
+            })).filter(r => (r.ns_code || r.product_code) && r.bin_code);
 
             // Process in batches to avoid statement timeout
             const totalBatches = Math.ceil(rows.length / BATCH_SIZE);
@@ -410,11 +427,11 @@ const DataImportExport = ({ isOpen, onClose }) => {
                                                             <tr>
                                                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bin ID</th>
                                                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lot No</th>
+                                                                <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NS Code</th>
                                                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
+                                                                <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barcode</th>
                                                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
                                                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                                                                <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NS Code</th>
-                                                                <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NS Name</th>
                                                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NS SubGroup</th>
                                                                 <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
                                                             </tr>
@@ -424,11 +441,11 @@ const DataImportExport = ({ isOpen, onClose }) => {
                                                                 <tr key={idx}>
                                                                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">{row.binId}</td>
                                                                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{row.lotNo}</td>
-                                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{row.productCode}</td>
+                                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-blue-600 font-medium font-mono">{row.nsCode}</td>
+                                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 font-mono">{row.productCode}</td>
+                                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-indigo-600 font-mono">{row.barcode}</td>
                                                                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate" title={row.productName}>{row.productName}</td>
                                                                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{row.unit}</td>
-                                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{row.nsCode}</td>
-                                                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate" title={row.nsName}>{row.nsName}</td>
                                                                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{row.nsSubGroup}</td>
                                                                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500 font-bold">{row.quantity}</td>
                                                                 </tr>
